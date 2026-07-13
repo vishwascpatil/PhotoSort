@@ -1,0 +1,26 @@
+﻿<Application x:Class="PhotoSort.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:helpers="clr-namespace:PhotoSort.Helpers">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Themes/LightTheme.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <helpers:ZeroToVisibleConverter x:Key="ZeroToVisibleConverter" />
+            <helpers:NonZeroToVisibleConverter x:Key="NonZeroToVisibleConverter" />
+            <helpers:NonZeroToBoolConverter x:Key="NonZeroToBoolConverter" />
+            <helpers:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+            <helpers:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter" />
+            <helpers:SortModeLabelConverter x:Key="SortModeLabelConverter" />
+            <helpers:ThumbnailToBitmapConverter x:Key="ThumbnailToBitmapConverter" />
+            <helpers:NullOrEmptyToVisibilityConverter x:Key="NullOrEmptyToVisibilityConverter" />
+            <helpers:InverseNullOrEmptyToVisibilityConverter x:Key="InverseNullOrEmptyToVisibilityConverter" />
+            <helpers:YearExpandAngleConverter x:Key="YearExpandAngleConverter" />
+            <helpers:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
+            <helpers:InverseBoolConverter x:Key="InverseBoolConverter" />
+            <helpers:StringToVisibilityConverter x:Key="StringToVisibilityConverter" />
+            <helpers:PercentageToScaleConverter x:Key="PercentageToScaleConverter" />
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

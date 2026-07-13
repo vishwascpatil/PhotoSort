@@ -1,0 +1,217 @@
+﻿<Window x:Class="PhotoSort.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:PhotoSort.ViewModels"
+        xmlns:views="clr-namespace:PhotoSort.Views"
+        mc:Ignorable="d"
+        Title="PhotoSort" Height="600" Width="900"
+        WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource WindowBackground}">
+
+    <Window.Resources>
+        <DataTemplate DataType="{x:Type vm:WelcomeViewModel}">
+            <views:WelcomeView />
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:GalleryViewModel}">
+            <views:GalleryView />
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:PhotoViewerViewModel}">
+            <views:PhotoViewerView />
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:DuplicateDetectionViewModel}">
+            <views:DuplicateDetectionView />
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:CleanupViewModel}">
+            <views:CleanupView />
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:SimilarPhotosViewModel}">
+            <views:SimilarPhotosView />
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:SyncViewModel}">
+            <views:SyncView />
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:PeopleViewModel}">
+            <views:PeopleView />
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:TravelInsightsViewModel}">
+            <views:TravelInsightsView />
+        </DataTemplate>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="220" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <!-- ═══════════════════════════════════════════ -->
+        <!-- Sidebar Navigation (always visible)          -->
+        <!-- ═══════════════════════════════════════════ -->
+        <Border Grid.Column="0"
+                Background="{DynamicResource SidebarBackground}"
+                BorderBrush="{DynamicResource SidebarBorderBrush}"
+                BorderThickness="0,0,1,0">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <!-- App Title -->
+                <StackPanel Grid.Row="0" Margin="20,20,20,24">
+                    <TextBlock Text="Photo Sorter" FontSize="18" FontWeight="Bold"
+                               Foreground="{DynamicResource TitleTextBrush}" />
+                    <TextBlock Text="LUMINA EDITION" FontSize="9" FontWeight="SemiBold"
+                               Foreground="{DynamicResource SidebarSectionTitleBrush}"
+                               Margin="0,2,0,0" />
+                </StackPanel>
+
+                <!-- Navigation Items -->
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="0,0,0,12">
+                        <!-- Section: Main -->
+                        <TextBlock Text="NAVIGATE" FontSize="10" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource SidebarSectionTitleBrush}"
+                                   Margin="20,0,0,8" />
+
+                        <!-- All Photos -->
+                        <Border x:Name="NavAllPhotos" Margin="8,1" Padding="12,9"
+                                CornerRadius="8" Cursor="Hand"
+                                Background="{DynamicResource SidebarItemActiveBackground}"
+                                MouseLeftButtonDown="OnNavAllPhotos">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#x1F5BC;" FontSize="15" VerticalAlignment="Center"
+                                           Margin="0,0,10,0" Foreground="{DynamicResource SidebarItemActiveForeground}" />
+                                <TextBlock Text="All Photos" FontSize="13" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource SidebarItemActiveForeground}"
+                                           VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Timeline / Memories -->
+                        <Border x:Name="NavMemories" Margin="8,1" Padding="12,9"
+                                CornerRadius="8" Cursor="Hand"
+                                Background="{DynamicResource SidebarItemBackground}"
+                                MouseLeftButtonDown="OnNavMemories">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#x2728;" FontSize="15" VerticalAlignment="Center"
+                                           Margin="0,0,10,0" Foreground="{DynamicResource SidebarItemForeground}" />
+                                <TextBlock Text="Memories" FontSize="13"
+                                           Foreground="{DynamicResource SidebarItemForeground}"
+                                           VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- People -->
+                        <Border x:Name="NavPeople" Margin="8,1" Padding="12,9"
+                                CornerRadius="8" Cursor="Hand"
+                                Background="{DynamicResource SidebarItemBackground}"
+                                MouseLeftButtonDown="OnNavPeople">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#x1F464;" FontSize="15" VerticalAlignment="Center"
+                                           Margin="0,0,10,0" Foreground="{DynamicResource SidebarItemForeground}" />
+                                <TextBlock Text="People" FontSize="13"
+                                           Foreground="{DynamicResource SidebarItemForeground}"
+                                           VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Travel / Places -->
+                        <Border x:Name="NavTravel" Margin="8,1" Padding="12,9"
+                                CornerRadius="8" Cursor="Hand"
+                                Background="{DynamicResource SidebarItemBackground}"
+                                MouseLeftButtonDown="OnNavTravel">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#x2708;" FontSize="15" VerticalAlignment="Center"
+                                           Margin="0,0,10,0" Foreground="{DynamicResource SidebarItemForeground}" />
+                                <TextBlock Text="Travel" FontSize="13"
+                                           Foreground="{DynamicResource SidebarItemForeground}"
+                                           VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Favorites / Similar -->
+                        <Border x:Name="NavSimilar" Margin="8,1" Padding="12,9"
+                                CornerRadius="8" Cursor="Hand"
+                                Background="{DynamicResource SidebarItemBackground}"
+                                MouseLeftButtonDown="OnNavSimilar">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#x1F48E;" FontSize="15" VerticalAlignment="Center"
+                                           Margin="0,0,10,0" Foreground="{DynamicResource SidebarItemForeground}" />
+                                <TextBlock Text="Similar Photos" FontSize="13"
+                                           Foreground="{DynamicResource SidebarItemForeground}"
+                                           VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Section: Tools -->
+                        <TextBlock Text="TOOLS" FontSize="10" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource SidebarSectionTitleBrush}"
+                                   Margin="20,16,0,8" />
+
+                        <!-- Duplicates -->
+                        <Border x:Name="NavDuplicates" Margin="8,1" Padding="12,9"
+                                CornerRadius="8" Cursor="Hand"
+                                Background="{DynamicResource SidebarItemBackground}"
+                                MouseLeftButtonDown="OnNavDuplicates">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#x1F50D;" FontSize="15" VerticalAlignment="Center"
+                                           Margin="0,0,10,0" Foreground="{DynamicResource SidebarItemForeground}" />
+                                <TextBlock Text="Duplicates" FontSize="13"
+                                           Foreground="{DynamicResource SidebarItemForeground}"
+                                           VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Cleanup -->
+                        <Border x:Name="NavCleanup" Margin="8,1" Padding="12,9"
+                                CornerRadius="8" Cursor="Hand"
+                                Background="{DynamicResource SidebarItemBackground}"
+                                MouseLeftButtonDown="OnNavCleanup">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#x1F5D1;" FontSize="15" VerticalAlignment="Center"
+                                           Margin="0,0,10,0" Foreground="{DynamicResource SidebarItemForeground}" />
+                                <TextBlock Text="Cleanup" FontSize="13"
+                                           Foreground="{DynamicResource SidebarItemForeground}"
+                                           VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Sync -->
+                        <Border x:Name="NavSync" Margin="8,1" Padding="12,9"
+                                CornerRadius="8" Cursor="Hand"
+                                Background="{DynamicResource SidebarItemBackground}"
+                                MouseLeftButtonDown="OnNavSync">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#x1F504;" FontSize="15" VerticalAlignment="Center"
+                                           Margin="0,0,10,0" Foreground="{DynamicResource SidebarItemForeground}" />
+                                <TextBlock Text="Sync" FontSize="13"
+                                           Foreground="{DynamicResource SidebarItemForeground}"
+                                           VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- Import Button -->
+                <Button Grid.Row="2"
+                        Click="OnImportPhotos"
+                        Style="{StaticResource SecondaryButton}"
+                        Margin="16,0,16,16" Padding="12,10" FontSize="13">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                        <TextBlock Text="&#x2795;" FontSize="12" VerticalAlignment="Center" Margin="0,0,8,0" />
+                        <TextBlock Text="Import Photos" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+            </Grid>
+        </Border>
+
+        <!-- ═══════════════════════════════════════════ -->
+        <!-- Main Content Area                           -->
+        <!-- ═══════════════════════════════════════════ -->
+        <ContentControl Grid.Column="1" Content="{Binding CurrentViewModel}" />
+    </Grid>
+</Window>

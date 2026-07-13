@@ -1,0 +1,182 @@
+<UserControl x:Class="PhotoSort.Views.CleanupView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:models="clr-namespace:PhotoSort.Models"
+             mc:Ignorable="d"
+             d:DesignHeight="700" d:DesignWidth="1100"
+             Background="{DynamicResource WindowBackground}">
+
+    <Grid Margin="32,24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,20">
+            <TextBlock Text="Cleanup" FontSize="28" FontWeight="Bold"
+                       Foreground="{DynamicResource TitleTextBrush}" VerticalAlignment="Center" />
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="16,0,0,0">
+                <Border Background="{DynamicResource CleanupBadgeOrangeBackground}"
+                        CornerRadius="12" Padding="10,5" Margin="0,0,8,0">
+                    <TextBlock FontSize="12" FontWeight="SemiBold"
+                               Foreground="{DynamicResource CleanupBadgeOrangeForeground}"
+                               Text="{Binding TotalIssuesCount, Mode=OneWay, StringFormat='{}{0} issues found'}" />
+                </Border>
+                <Border Background="{DynamicResource CleanupBadgeGrayBackground}"
+                        CornerRadius="12" Padding="10,5" Margin="0,0,8,0">
+                    <TextBlock FontSize="12" FontWeight="SemiBold"
+                               Foreground="{DynamicResource CleanupBadgeGrayForeground}"
+                               Text="{Binding DuplicatesCount, Mode=OneWay, StringFormat='{}{0} duplicates'}" />
+                </Border>
+                <Border Background="{DynamicResource CleanupBadgeGrayBackground}"
+                        CornerRadius="12" Padding="10,5">
+                    <TextBlock FontSize="12" FontWeight="SemiBold"
+                               Foreground="{DynamicResource CleanupBadgeGrayForeground}"
+                               Text="{Binding ClutterCount, Mode=OneWay, StringFormat='{}{0} clutter'}" />
+                </Border>
+            </StackPanel>
+        </StackPanel>
+
+        <!-- Refresh Button -->
+        <Button Grid.Row="0" HorizontalAlignment="Right"
+                Command="{Binding LoadCategoriesCommand}"
+                Style="{StaticResource SecondaryButton}" Padding="10,8" FontSize="13">
+            <TextBlock Text="&#x21BB;" FontSize="16" VerticalAlignment="Center" />
+        </Button>
+
+        <!-- Category Cards Grid -->
+        <ItemsControl Grid.Row="2" ItemsSource="{Binding Categories}" Margin="0,0,0,28">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <WrapPanel Orientation="Horizontal" />
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate DataType="{x:Type models:CleanupCategory}">
+                    <Border Width="180" Height="80" Margin="0,0,12,12"
+                            CornerRadius="12"
+                            Background="{DynamicResource CardBackground}"
+                            BorderBrush="{DynamicResource CleanupCardBorderBrush}"
+                            BorderThickness="1" Cursor="Hand"
+                            MouseLeftButtonDown="OnCategoryClick"
+                            Padding="16">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Icon -->
+                            <Border Grid.Column="0" Width="40" Height="40"
+                                    CornerRadius="20" VerticalAlignment="Center"
+                                    Margin="0,0,12,0"
+                                    Background="{DynamicResource CleanupIconOrangeBackground}">
+                                <TextBlock Text="{Binding Icon}" FontSize="18"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                                           Foreground="{DynamicResource CleanupIconOrangeForeground}" />
+                            </Border>
+
+                            <!-- Text -->
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding DisplayName}" FontSize="13" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource TitleTextBrush}" />
+                                <TextBlock FontSize="11"
+                                           Foreground="{DynamicResource CardDescriptionBrush}" Margin="0,2,0,0"
+                                           Text="{Binding FileCount, Mode=OneWay, StringFormat='{}{0} items'}" />
+                            </StackPanel>
+
+                            <!-- Chevron -->
+                            <TextBlock Grid.Column="2" Text="&#x276E;" FontSize="12"
+                                       VerticalAlignment="Center"
+                                       Foreground="{DynamicResource CardDescriptionBrush}" />
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <!-- Summary Section -->
+        <TextBlock Grid.Row="3" Text="Summary" FontSize="18" FontWeight="SemiBold"
+                   Foreground="{DynamicResource TitleTextBrush}" Margin="0,0,0,16" />
+
+        <Grid Grid.Row="4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="12" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="12" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Duplicates Card -->
+            <Border Grid.Column="0" CornerRadius="12"
+                    Background="{DynamicResource CardBackground}"
+                    BorderBrush="{DynamicResource CleanupCardBorderBrush}"
+                    BorderThickness="1" Padding="24,20">
+                <StackPanel>
+                    <Border Width="40" Height="40" CornerRadius="8"
+                            Background="{DynamicResource CleanupIconRedBackground}"
+                            HorizontalAlignment="Left" Margin="0,0,0,12">
+                        <TextBlock Text="&#x1F4C4;" FontSize="18"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource CleanupSummaryDuplicatesIcon}" />
+                    </Border>
+                    <TextBlock FontSize="32" FontWeight="Bold"
+                               Foreground="{DynamicResource TitleTextBrush}"
+                               Text="{Binding DuplicatesCount, Mode=OneWay}" />
+                    <TextBlock Text="Duplicates" FontSize="13"
+                               Foreground="{DynamicResource CardDescriptionBrush}" Margin="0,4,0,0" />
+                </StackPanel>
+            </Border>
+
+            <!-- Clutter Card -->
+            <Border Grid.Column="2" CornerRadius="12"
+                    Background="{DynamicResource CardBackground}"
+                    BorderBrush="{DynamicResource CleanupCardBorderBrush}"
+                    BorderThickness="1" Padding="24,20">
+                <StackPanel>
+                    <Border Width="40" Height="40" CornerRadius="8"
+                            Background="{DynamicResource CleanupIconGreenBackground}"
+                            HorizontalAlignment="Left" Margin="0,0,0,12">
+                        <TextBlock Text="&#x1F4AC;" FontSize="18"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource CleanupSummaryClutterIcon}" />
+                    </Border>
+                    <TextBlock FontSize="32" FontWeight="Bold"
+                               Foreground="{DynamicResource TitleTextBrush}"
+                               Text="{Binding ClutterCount, Mode=OneWay}" />
+                    <TextBlock Text="Clutter" FontSize="13"
+                               Foreground="{DynamicResource CardDescriptionBrush}" Margin="0,4,0,0" />
+                </StackPanel>
+            </Border>
+
+            <!-- Quality Card -->
+            <Border Grid.Column="4" CornerRadius="12"
+                    Background="{DynamicResource CardBackground}"
+                    BorderBrush="{DynamicResource CleanupCardBorderBrush}"
+                    BorderThickness="1" Padding="24,20">
+                <StackPanel>
+                    <Border Width="40" Height="40" CornerRadius="8"
+                            Background="{DynamicResource CleanupIconYellowBackground}"
+                            HorizontalAlignment="Left" Margin="0,0,0,12">
+                        <TextBlock Text="&#x2B22;" FontSize="18"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource CleanupSummaryQualityIcon}" />
+                    </Border>
+                    <TextBlock FontSize="32" FontWeight="Bold"
+                               Foreground="{DynamicResource TitleTextBrush}"
+                               Text="{Binding QualityCount, Mode=OneWay}" />
+                    <TextBlock Text="Quality" FontSize="13"
+                               Foreground="{DynamicResource CardDescriptionBrush}" Margin="0,4,0,0" />
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Grid>
+</UserControl>
