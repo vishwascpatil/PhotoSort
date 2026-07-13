@@ -1,0 +1,234 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Gradient Colors -->
+    <Color x:Key="HeaderGradientStartColor">#0078D4</Color>
+    <Color x:Key="HeaderGradientEndColor">#5C2D91</Color>
+
+    <!-- Backgrounds -->
+    <SolidColorBrush x:Key="WindowBackground" Color="#FAFAFA" />
+    <SolidColorBrush x:Key="CardBackground" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="CardHoverBackground" Color="#F5F5F5" />
+    <SolidColorBrush x:Key="HeaderGradientStart" Color="#0078D4" />
+    <SolidColorBrush x:Key="HeaderGradientEnd" Color="#5C2D91" />
+    <SolidColorBrush x:Key="DividerBrush" Color="#E0E0E0" />
+
+    <!-- Text -->
+    <SolidColorBrush x:Key="TitleTextBrush" Color="#1A1A1A" />
+    <SolidColorBrush x:Key="SubtitleTextBrush" Color="#616161" />
+    <SolidColorBrush x:Key="CardTitleBrush" Color="#1A1A1A" />
+    <SolidColorBrush x:Key="CardDescriptionBrush" Color="#757575" />
+    <SolidColorBrush x:Key="HeaderTextBrush" Color="#FFFFFF" />
+
+    <!-- Buttons -->
+    <SolidColorBrush x:Key="PrimaryButtonBackground" Color="#0078D4" />
+    <SolidColorBrush x:Key="PrimaryButtonHover" Color="#106EBE" />
+    <SolidColorBrush x:Key="PrimaryButtonText" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="SecondaryButtonBackground" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="SecondaryButtonHover" Color="#F0F0F0" />
+    <SolidColorBrush x:Key="SecondaryButtonText" Color="#333333" />
+    <SolidColorBrush x:Key="SecondaryButtonBorder" Color="#D0D0D0" />
+
+    <!-- Feature Icons -->
+    <SolidColorBrush x:Key="PrivacyIconBackground" Color="#E3F2FD" />
+    <SolidColorBrush x:Key="PrivacyIconForeground" Color="#1565C0" />
+    <SolidColorBrush x:Key="LocalIconBackground" Color="#E8F5E9" />
+    <SolidColorBrush x:Key="LocalIconForeground" Color="#2E7D32" />
+    <SolidColorBrush x:Key="SecureIconBackground" Color="#FFF3E0" />
+    <SolidColorBrush x:Key="SecureIconForeground" Color="#E65100" />
+
+    <!-- Gallery -->
+    <SolidColorBrush x:Key="GalleryPlaceholderBackground" Color="#E8E8E8" />
+    <SolidColorBrush x:Key="GalleryPlaceholderForeground" Color="#BDBDBD" />
+    <SolidColorBrush x:Key="GalleryTileBackground" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="GalleryTileHoverBackground" Color="#F0F0F0" />
+    <SolidColorBrush x:Key="GalleryTileBorder" Color="#E0E0E0" />
+    <SolidColorBrush x:Key="GalleryTileFileName" Color="#1A1A1A" />
+    <SolidColorBrush x:Key="GalleryTileDate" Color="#757575" />
+    <SolidColorBrush x:Key="GalleryFavoriteBrush" Color="#E53935" />
+    <SolidColorBrush x:Key="GallerySkeletonBrush" Color="#E0E0E0" />
+    <SolidColorBrush x:Key="GalleryStatusBarBackground" Color="#F5F5F5" />
+    <SolidColorBrush x:Key="GalleryStatusBarBorder" Color="#E0E0E0" />
+    <SolidColorBrush x:Key="GalleryStatusText" Color="#616161" />
+    <SolidColorBrush x:Key="GalleryMetricText" Color="#424242" />
+
+    <!-- Theme Toggle -->
+    <SolidColorBrush x:Key="ToggleForeground" Color="#FFFFFF" />
+
+    <!-- Photo Viewer -->
+    <SolidColorBrush x:Key="ViewerBackground" Color="#1A1A1A" />
+    <SolidColorBrush x:Key="ViewerToolbarBackground" Color="#2D2D2D" />
+    <SolidColorBrush x:Key="ViewerToolbarBorder" Color="#404040" />
+    <SolidColorBrush x:Key="ViewerTextBrush" Color="#E0E0E0" />
+    <SolidColorBrush x:Key="ViewerTitleBrush" Color="#F0F0F0" />
+    <SolidColorBrush x:Key="ViewerLabelBrush" Color="#888888" />
+    <SolidColorBrush x:Key="ViewerStatusText" Color="#A0A0A0" />
+    <SolidColorBrush x:Key="ViewerArrowBrush" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="ViewerPanelBackground" Color="#252525" />
+    <SolidColorBrush x:Key="ViewerToolButtonBackground" Color="#3D3D3D" />
+    <SolidColorBrush x:Key="ViewerToolButtonHover" Color="#505050" />
+    <SolidColorBrush x:Key="ViewerToolButtonText" Color="#E0E0E0" />
+
+    <!-- Shadows -->
+    <DropShadowEffect x:Key="CardShadow"
+                      BlurRadius="12" ShadowDepth="2"
+                      Direction="270" Color="#000000" Opacity="0.06" />
+    <DropShadowEffect x:Key="CardHoverShadow"
+                      BlurRadius="20" ShadowDepth="4"
+                      Direction="270" Color="#000000" Opacity="0.10" />
+
+    <!-- Cleanup View -->
+    <SolidColorBrush x:Key="CleanupBadgeOrangeBackground" Color="#FFF3E0" />
+    <SolidColorBrush x:Key="CleanupBadgeOrangeForeground" Color="#E65100" />
+    <SolidColorBrush x:Key="CleanupBadgeGrayBackground" Color="#F5F5F5" />
+    <SolidColorBrush x:Key="CleanupBadgeGrayForeground" Color="#616161" />
+    <SolidColorBrush x:Key="CleanupIconOrangeBackground" Color="#FFF3E0" />
+    <SolidColorBrush x:Key="CleanupIconOrangeForeground" Color="#E65100" />
+    <SolidColorBrush x:Key="CleanupIconYellowBackground" Color="#FFFDE7" />
+    <SolidColorBrush x:Key="CleanupIconYellowForeground" Color="#F9A825" />
+    <SolidColorBrush x:Key="CleanupIconGreenBackground" Color="#E8F5E9" />
+    <SolidColorBrush x:Key="CleanupIconGreenForeground" Color="#2E7D32" />
+    <SolidColorBrush x:Key="CleanupIconRedBackground" Color="#FFEBEE" />
+    <SolidColorBrush x:Key="CleanupIconRedForeground" Color="#C62828" />
+    <SolidColorBrush x:Key="CleanupSummaryDuplicatesIcon" Color="#C62828" />
+    <SolidColorBrush x:Key="CleanupSummaryClutterIcon" Color="#2E7D32" />
+    <SolidColorBrush x:Key="CleanupSummaryQualityIcon" Color="#F9A825" />
+    <SolidColorBrush x:Key="CleanupCardBorderBrush" Color="#E8E8E8" />
+    <SolidColorBrush x:Key="CleanupCardHoverBorderBrush" Color="#D0D0D0" />
+
+    <!-- Sidebar Navigation -->
+    <SolidColorBrush x:Key="SidebarBackground" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="SidebarBorderBrush" Color="#E8E8E8" />
+    <SolidColorBrush x:Key="SidebarItemBackground" Color="Transparent" />
+    <SolidColorBrush x:Key="SidebarItemHoverBackground" Color="#F5F5F5" />
+    <SolidColorBrush x:Key="SidebarItemActiveBackground" Color="#E3F2FD" />
+    <SolidColorBrush x:Key="SidebarItemForeground" Color="#424242" />
+    <SolidColorBrush x:Key="SidebarItemActiveForeground" Color="#0078D4" />
+    <SolidColorBrush x:Key="SidebarSectionTitleBrush" Color="#9E9E9E" />
+    <SolidColorBrush x:Key="SidebarFolderIconBrush" Color="#757575" />
+
+    <!-- Styles -->
+    <Style x:Key="CardBorder" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource CardBackground}" />
+        <Setter Property="CornerRadius" Value="12" />
+        <Setter Property="Padding" Value="24" />
+        <Setter Property="Effect" Value="{StaticResource CardShadow}" />
+    </Style>
+
+    <Style x:Key="IconEllipse" TargetType="Ellipse">
+        <Setter Property="Width" Value="48" />
+        <Setter Property="Height" Value="48" />
+    </Style>
+
+    <Style x:Key="PrimaryButton" TargetType="Button">
+        <Setter Property="Background" Value="{StaticResource PrimaryButtonBackground}" />
+        <Setter Property="Foreground" Value="{StaticResource PrimaryButtonText}" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Padding" Value="28,12" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="border"
+                            Background="{TemplateBinding Background}"
+                            CornerRadius="8"
+                            Padding="{TemplateBinding Padding}"
+                            BorderThickness="0">
+                        <ContentPresenter HorizontalAlignment="Center"
+                                          VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Background" Value="{StaticResource PrimaryButtonHover}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="SecondaryButton" TargetType="Button">
+        <Setter Property="Background" Value="{StaticResource SecondaryButtonBackground}" />
+        <Setter Property="Foreground" Value="{StaticResource SecondaryButtonText}" />
+        <Setter Property="BorderBrush" Value="{StaticResource SecondaryButtonBorder}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Padding" Value="28,12" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="border"
+                            Background="{TemplateBinding Background}"
+                            CornerRadius="8"
+                            Padding="{TemplateBinding Padding}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}">
+                        <ContentPresenter HorizontalAlignment="Center"
+                                          VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Background" Value="{StaticResource SecondaryButtonHover}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="ThemeToggleButton" TargetType="Button">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{StaticResource ToggleForeground}" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="Padding" Value="10,6" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="border"
+                            Background="{TemplateBinding Background}"
+                            CornerRadius="6"
+                            Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Center"
+                                          VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="border" Property="Background" Value="#22FFFFFF" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="ViewerToolButton" TargetType="Button">
+        <Setter Property="Background" Value="{StaticResource ViewerToolButtonBackground}" />
+        <Setter Property="Foreground" Value="{StaticResource ViewerToolButtonText}" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Padding" Value="10,6" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="border"
+                            Background="{TemplateBinding Background}"
+                            CornerRadius="6"
+                            Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Center"
+                                          VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Background" Value="{StaticResource ViewerToolButtonHover}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+</ResourceDictionary>
