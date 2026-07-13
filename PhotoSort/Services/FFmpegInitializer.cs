@@ -30,9 +30,7 @@ public static class FFmpegInitializer
         GlobalFFOptions.Configure(new FFOptions
         {
             BinaryFolder = FfmpegDirectory,
-            TemporaryFilesFolder = Path.Combine(FfmpegDirectory, "tmp"),
-            FFMpegPath = FfmpegPath,
-            FFProbePath = FfprobePath
+            TemporaryFilesFolder = Path.Combine(FfmpegDirectory, "tmp")
         });
 
         if (File.Exists(FfmpegPath) && File.Exists(FfprobePath))
