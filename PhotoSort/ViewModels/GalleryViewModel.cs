@@ -460,16 +460,16 @@ Photos.Clear();
             }
             else
             {
-                if (!string.IsNullOrEmpty(photo.ThumbnailSmallPath) && File.Exists(photo.ThumbnailSmallPath))
-                    continue;
+            if (!string.IsNullOrEmpty(photo.ThumbnailSmallPath) && File.Exists(photo.ThumbnailSmallPath))
+                continue;
 
-                _thumbnailCacheService.Enqueue(
-                    photo.Id,
-                    photo.FilePath,
-                    photo.ModifiedDateUtc,
-                    priority);
-            }
+            _thumbnailCacheService.Enqueue(
+                photo.Id,
+                photo.FilePath,
+                photo.ModifiedDateUtc,
+                priority);
         }
+    }
     }
 
     private void OnThumbnailReady(object? sender, int photoId)

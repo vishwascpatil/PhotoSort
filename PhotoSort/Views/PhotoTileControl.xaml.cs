@@ -50,6 +50,7 @@ public partial class PhotoTileControl : UserControl
         {
             VideoPlayer.Source = new Uri(clipPath, UriKind.Absolute);
             _clipLoaded = true;
+            return;
         }
 
         StartPlayback();
