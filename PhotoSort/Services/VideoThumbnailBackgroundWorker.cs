@@ -240,7 +240,8 @@ public sealed class VideoThumbnailBackgroundWorker : IVideoThumbnailWorker
                 && !string.IsNullOrEmpty(existing.VideoThumbnailSmallPath)
                 && File.Exists(existing.VideoThumbnailSmallPath)
                 && !string.IsNullOrEmpty(existing.PreviewClipPath)
-                && File.Exists(existing.PreviewClipPath))
+                && File.Exists(existing.PreviewClipPath)
+                && new FileInfo(existing.PreviewClipPath).Length > 0)
             {
                 Interlocked.Increment(ref _skippedCount);
                 return;

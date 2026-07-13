@@ -288,12 +288,15 @@ public sealed class VideoThumbnailService : IVideoThumbnailService
 
         var clipPath = GetPreviewClipPath(photoId);
 
-        if (File.Exists(clipPath))
+        if (File.Exists(clipPath) && new FileInfo(clipPath).Length > 0)
             return clipPath;
 
         var ffmpegPath = FFmpegInitializer.FfmpegPath;
         if (!File.Exists(ffmpegPath))
             return null;
+
+        // Remove any zero-byte orphan from a previous failed attempt
+        TryDelete(clipPath);
 
         try
         {
@@ -308,7 +311,7 @@ public sealed class VideoThumbnailService : IVideoThumbnailService
                             "-c:v libx264 -preset ultrafast -crf 28 " +
                             $"-an -y \"{clipPath}\"";
 
-            var process = new Process
+            using var process = new Process
             {
                 StartInfo = new ProcessStartInfo
                 {
@@ -321,10 +324,32 @@ public sealed class VideoThumbnailService : IVideoThumbnailService
                 }
             };
 
+            // Read stderr concurrently to prevent ffmpeg hanging when its stderr buffer fills
             process.Start();
-            await process.WaitForExitAsync(cancellationToken);
 
-            if (process.ExitCode == 0 && File.Exists(clipPath))
+            var stderrTask = process.StandardError.ReadToEndAsync();
+
+            // Use a timeout to avoid hanging indefinitely if ffmpeg stalls
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            cts.CancelAfter(TimeSpan.FromSeconds(60));
+
+            try
+            {
+                await process.WaitForExitAsync(cts.Token);
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                // Timeout reached — kill the process
+                try { process.Kill(entireProcessTree: true); } catch { }
+                await stderrTask;
+                TryDelete(clipPath);
+                _logger.LogWarning("FFmpeg clip generation timed out for {FilePath}", filePath);
+                return null;
+            }
+
+            var errorOutput = await stderrTask;
+
+            if (process.ExitCode == 0 && File.Exists(clipPath) && new FileInfo(clipPath).Length > 0)
             {
                 _logger.LogInformation("Generated {Duration}s preview clip for {PhotoId} at {Start:F1}s ({Size} bytes)",
                     PreviewClipDurationSeconds, photoId, startSeconds,
@@ -332,16 +357,11 @@ public sealed class VideoThumbnailService : IVideoThumbnailService
                 return clipPath;
             }
 
-            var errorOutput = await process.StandardError.ReadToEndAsync(cancellationToken);
             _logger.LogWarning("FFmpeg clip generation failed for {FilePath} (exit {Code}): {Error}",
                 filePath, process.ExitCode, errorOutput[..Math.Min(200, errorOutput.Length)]);
 
             TryDelete(clipPath);
             return null;
-        }
-        catch (OperationCanceledException)
-        {
-            throw;
         }
         catch (Exception ex)
         {
