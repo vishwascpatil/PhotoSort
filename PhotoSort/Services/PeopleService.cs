@@ -20,13 +20,19 @@ public sealed class PeopleService : IPeopleService
     private readonly IDbContextFactory<PhotoSortDbContext> _contextFactory;
     private readonly ILogger<PeopleService> _logger;
 
-    private readonly CancellationTokenSource _cts;
+    private CancellationTokenSource _cts;
     private readonly ManualResetEventSlim _pauseEvent;
     private readonly object _progressLock;
 
     private FaceProcessingProgress _progress;
     private Task? _processingTask;
     private bool _disposed;
+
+    private static readonly HashSet<string> VideoExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".mp4", ".mov", ".avi", ".mkv", ".wmv", ".webm", ".m4v", ".3gp", ".flv",
+        ".mpg", ".mpeg", ".ts", ".mts", ".m2ts"
+    };
 
     private const int BatchSize = 50;
     private const double SimilarityThreshold = 0.6;
@@ -81,6 +87,9 @@ public sealed class PeopleService : IPeopleService
         if (IsProcessing)
             return;
 
+        _cts.Cancel();
+        _cts.Dispose();
+        _cts = new CancellationTokenSource();
         var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token, cancellationToken);
         _processingTask = Task.Run(() => RunProcessingAsync(linkedCts.Token), linkedCts.Token);
 
@@ -150,11 +159,11 @@ public sealed class PeopleService : IPeopleService
                     CreatedDate = DateTime.UtcNow
                 };
 
-                var faceThumbnailPath = SaveFaceThumbnail(face.Id, alignedFaceData);
-                face.ThumbnailPath = faceThumbnailPath;
-
                 context.Faces.Add(face);
                 await context.SaveChangesAsync(cancellationToken);
+
+                var faceThumbnailPath = SaveFaceThumbnail(face.Id, alignedFaceData);
+                face.ThumbnailPath = faceThumbnailPath;
 
                 var embedding = await _faceEmbeddingService.GenerateEmbeddingAsync(
                     alignedFaceData, cancellationToken: cancellationToken);
@@ -247,14 +256,20 @@ public sealed class PeopleService : IPeopleService
             await using var context = await _contextFactory.CreateDbContextAsync(cancellationToken);
 
             var people = await context.People
-                .AsNoTracking()
                 .OrderBy(p => p.Name)
                 .ToListAsync(cancellationToken);
 
             var result = new List<PersonInfo>();
+            var needsSave = false;
 
             foreach (var person in people)
             {
+                if (string.IsNullOrEmpty(person.ThumbnailPath))
+                {
+                    await UpdatePersonThumbnailAsync(context, person, cancellationToken);
+                    needsSave = true;
+                }
+
                 var faceCount = await context.PersonFaces
                     .CountAsync(pf => pf.PersonId == person.Id && !pf.Face.IsIgnored, cancellationToken);
 
@@ -275,6 +290,9 @@ public sealed class PeopleService : IPeopleService
                     CreatedDate = person.CreatedDate
                 });
             }
+
+            if (needsSave)
+                await context.SaveChangesAsync(cancellationToken);
 
             return result;
         }
@@ -756,6 +774,86 @@ public sealed class PeopleService : IPeopleService
         }
     }
 
+    public async Task<IReadOnlyList<FaceInfo>> GetUnnamedFacesAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            await using var context = await _contextFactory.CreateDbContextAsync(cancellationToken);
+
+            var faces = await context.Faces
+                .AsNoTracking()
+                .Where(f => !f.PersonFaces.Any() && !f.IsIgnored)
+                .Include(f => f.Photo)
+                .OrderByDescending(f => f.CreatedDate)
+                .Take(20)
+                .ToListAsync(cancellationToken);
+
+            return faces.Select(f => new FaceInfo
+            {
+                FaceId = f.Id,
+                PhotoId = f.PhotoId,
+                FilePath = f.Photo?.FilePath,
+                FileName = f.Photo?.FileName,
+                ThumbnailPath = f.ThumbnailPath,
+                PersonId = null,
+                PersonName = null,
+                Confidence = f.Confidence,
+                BoundingBoxX = f.BoundingBoxX,
+                BoundingBoxY = f.BoundingBoxY,
+                BoundingBoxWidth = f.BoundingBoxWidth,
+                BoundingBoxHeight = f.BoundingBoxHeight,
+                CreatedDate = f.CreatedDate,
+                IsIgnored = f.IsIgnored,
+                HasEmbedding = f.FaceEmbedding != null
+            }).ToList();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get unnamed faces");
+            return [];
+        }
+    }
+
+    public async Task<Person> NameFaceAsync(int faceId, string name, CancellationToken cancellationToken = default)
+    {
+        await using var context = await _contextFactory.CreateDbContextAsync(cancellationToken);
+
+        var face = await context.Faces
+            .Include(f => f.PersonFaces)
+            .FirstOrDefaultAsync(f => f.Id == faceId, cancellationToken);
+
+        if (face is null)
+            throw new InvalidOperationException($"Face {faceId} not found");
+
+        var person = new Person
+        {
+            Name = name,
+            FaceCount = 1,
+            PhotoCount = 1,
+            CreatedDate = DateTime.UtcNow
+        };
+
+        context.People.Add(person);
+        await context.SaveChangesAsync(cancellationToken);
+
+        var personFace = new PersonFace
+        {
+            PersonId = person.Id,
+            FaceId = face.Id,
+            AssignedDate = DateTime.UtcNow
+        };
+
+        context.PersonFaces.Add(personFace);
+        await context.SaveChangesAsync(cancellationToken);
+
+        await UpdatePersonThumbnailAsync(context, person, cancellationToken);
+        await context.SaveChangesAsync(cancellationToken);
+
+        PeopleChanged?.Invoke(this, EventArgs.Empty);
+
+        return person;
+    }
+
     public void Dispose()
     {
         if (_disposed)
@@ -781,8 +879,9 @@ public sealed class PeopleService : IPeopleService
 
             var unprocessedPhotos = await context.Photos
                 .AsNoTracking()
-                .Where(p => p.State < ProcessingState.FaceProcessed)
-                .Select(p => new { p.Id, p.FilePath })
+                .Where(p => p.State < ProcessingState.FaceProcessed
+                    && !VideoExtensions.Contains(p.Extension))
+                .Select(p => new PhotoBatchItem(p.Id, p.FilePath))
                 .ToListAsync(cancellationToken);
 
             _progress.TotalPhotos = unprocessedPhotos.Count;
@@ -847,21 +946,29 @@ public sealed class PeopleService : IPeopleService
         }
     }
 
+    private sealed record PhotoBatchItem(int Id, string FilePath);
+
     private async Task ProcessBatchAsync(
-        IReadOnlyList<dynamic> batch,
+        IReadOnlyList<PhotoBatchItem> batch,
         CancellationToken cancellationToken)
     {
         var detectionResults = new List<FaceDetectionResult>();
+        var failedPhotoIds = new List<int>();
 
         foreach (var photo in batch)
         {
-            int photoId = photo.Id;
-            string filePath = photo.FilePath;
-
             var result = await _faceDetectionService.DetectFacesAsync(
-                filePath, photoId, cancellationToken);
+                photo.FilePath, photo.Id, cancellationToken);
 
-            if (result.Success && result.FacesDetected > 0)
+            if (!result.Success)
+            {
+                failedPhotoIds.Add(photo.Id);
+                _logger.LogWarning("Face detection failed for photo {PhotoId}: {Error}",
+                    photo.Id, result.ErrorMessage);
+                continue;
+            }
+
+            if (result.FacesDetected > 0)
             {
                 detectionResults.Add(result);
             }
@@ -870,6 +977,29 @@ public sealed class PeopleService : IPeopleService
         }
 
         await ProcessDetectionResultsAsync(detectionResults, cancellationToken);
+
+        var photosWithFaces = detectionResults.Select(r => r.PhotoId).ToHashSet();
+        var photosWithoutFaces = batch
+            .Where(p => !photosWithFaces.Contains(p.Id) && !failedPhotoIds.Contains(p.Id))
+            .ToList();
+        if (photosWithoutFaces.Count > 0)
+        {
+            await MarkPhotosAsProcessedAsync(photosWithoutFaces.Select(p => p.Id).ToList(), cancellationToken);
+        }
+    }
+
+    private async Task MarkPhotosAsProcessedAsync(List<int> photoIds, CancellationToken cancellationToken)
+    {
+        await using var context = await _contextFactory.CreateDbContextAsync(cancellationToken);
+        foreach (var photoId in photoIds)
+        {
+            var photo = await context.Photos.FindAsync([photoId], cancellationToken);
+            if (photo is not null)
+            {
+                photo.State = ProcessingState.FaceProcessed;
+            }
+        }
+        await context.SaveChangesAsync(cancellationToken);
     }
 
     private async Task ProcessDetectionResultsAsync(
@@ -913,11 +1043,11 @@ public sealed class PeopleService : IPeopleService
                     CreatedDate = DateTime.UtcNow
                 };
 
-                var faceThumbnailPath = SaveFaceThumbnail(face.Id, alignedFaceData);
-                face.ThumbnailPath = faceThumbnailPath;
-
                 context.Faces.Add(face);
                 await context.SaveChangesAsync(cancellationToken);
+
+                var faceThumbnailPath = SaveFaceThumbnail(face.Id, alignedFaceData);
+                face.ThumbnailPath = faceThumbnailPath;
 
                 var embedding = await _faceEmbeddingService.GenerateEmbeddingAsync(
                     alignedFaceData, cancellationToken: cancellationToken);
@@ -1078,18 +1208,18 @@ public sealed class PeopleService : IPeopleService
         Person person,
         CancellationToken cancellationToken)
     {
-        var firstFace = await context.PersonFaces
+        var personFace = await context.PersonFaces
             .Where(pf => pf.PersonId == person.Id && !pf.Face.IsIgnored)
+            .Include(pf => pf.Face)
+            .ThenInclude(f => f.Photo)
             .OrderByDescending(pf => pf.Face.CreatedDate)
-            .Select(pf => pf.Face)
-            .Include(f => f.Photo)
             .FirstOrDefaultAsync(cancellationToken);
 
-        if (firstFace?.Photo?.ThumbnailSmallPath is not null)
+        if (personFace?.Face?.Photo?.ThumbnailSmallPath is not null)
         {
-            person.ThumbnailPath = firstFace.Photo.ThumbnailSmallPath;
-            person.ThumbnailPhotoId = firstFace.PhotoId;
-            person.LastSeenDate = firstFace.Photo.DateTaken ?? firstFace.CreatedDate;
+            person.ThumbnailPath = personFace.Face.Photo.ThumbnailSmallPath;
+            person.ThumbnailPhotoId = personFace.Face.PhotoId;
+            person.LastSeenDate = personFace.Face.Photo.DateTaken ?? personFace.Face.CreatedDate;
         }
     }
 

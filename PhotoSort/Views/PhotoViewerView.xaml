@@ -147,7 +147,7 @@
 
                     <!-- Image Display -->
                     <Canvas x:Name="ImageCanvas"
-                            Visibility="{Binding IsVideo, Converter={StaticResource InverseBoolToVisibilityConverter}}">
+                            Visibility="Visible">
                         <Canvas.RenderTransform>
                             <TransformGroup>
                                 <ScaleTransform x:Name="ImageScaleTransform" />
@@ -163,11 +163,11 @@
 
                     <!-- Video Display -->
                     <MediaElement x:Name="VideoPlayer"
-                                  Source="{Binding VideoPath}"
                                   Visibility="{Binding IsVideo, Converter={StaticResource BoolToVisibilityConverter}}"
                                   LoadedBehavior="Manual"
                                   UnloadedBehavior="Stop"
                                   MediaOpened="OnMediaOpened"
+                                  MediaFailed="OnMediaFailed"
                                   HorizontalAlignment="Center"
                                   VerticalAlignment="Center"
                                   MaxWidth="1280" MaxHeight="720" />
@@ -210,7 +210,7 @@
                                VerticalAlignment="Center" />
 
                     <TextBlock Grid.Column="2"
-                               Text="{Binding CurrentPhoto.DisplaySize, Mode=OneWay, StringFormat='{}{0}  |  {1}'}"
+                               Text="{Binding CurrentPhoto.DisplaySize, Mode=OneWay, StringFormat='{}{0}'}"
                                FontSize="12"
                                Foreground="{DynamicResource ViewerStatusText}"
                                VerticalAlignment="Center" />

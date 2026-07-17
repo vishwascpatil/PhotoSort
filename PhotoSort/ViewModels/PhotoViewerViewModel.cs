@@ -224,26 +224,21 @@ public partial class PhotoViewerViewModel : ObservableObject, IDisposable
 
             if (VideoExtensions.Contains(extension))
             {
-                CurrentImage = null;
                 IsVideo = true;
                 VideoPath = CurrentPhoto.FilePath;
+
+                // Show thumbnail as instant poster frame while video loads
+                var posterPath = CurrentPhoto.ThumbnailMediumPath;
+                if (string.IsNullOrEmpty(posterPath) || !File.Exists(posterPath))
+                {
+                    posterPath = _thumbnailService.GetThumbnailPath(CurrentPhoto.Id, ThumbnailSize.Medium);
+                }
+                CurrentImage = File.Exists(posterPath) ? LoadThumbnailBitmap(posterPath) : null;
             }
             else if (ImageExtensions.Contains(extension))
             {
                 IsVideo = false;
                 VideoPath = string.Empty;
-
-                // Show medium thumbnail as placeholder while loading full image
-                var mediumThumbPath = CurrentPhoto.ThumbnailMediumPath;
-                if (string.IsNullOrEmpty(mediumThumbPath) || !File.Exists(mediumThumbPath))
-                {
-                    mediumThumbPath = _thumbnailService.GetThumbnailPath(CurrentPhoto.Id, ThumbnailSize.Medium);
-                }
-
-                if (File.Exists(mediumThumbPath))
-                {
-                    CurrentImage = LoadThumbnailBitmap(mediumThumbPath);
-                }
 
                 var cached = _mediaLoader.GetCached(CurrentPhoto.Id);
                 if (cached is not null)

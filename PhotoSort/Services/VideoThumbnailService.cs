@@ -306,9 +306,12 @@ public sealed class VideoThumbnailService : IVideoThumbnailService
 
             var startSeconds = Math.Max(0, duration * 0.15);
 
+            var scaleFilter = $"scale='min(1280,iw)':'min(720,ih)':force_original_aspect_ratio=decrease";
             var arguments = $"-ss {startSeconds:F2} -i \"{filePath}\" " +
                             $"-t {PreviewClipDurationSeconds} " +
                             "-c:v libx264 -preset ultrafast -crf 28 " +
+                            $"-vf \"{scaleFilter}\" " +
+                            "-b:v 800k -maxrate 1000k -bufsize 2000k " +
                             $"-an -y \"{clipPath}\"";
 
             using var process = new Process

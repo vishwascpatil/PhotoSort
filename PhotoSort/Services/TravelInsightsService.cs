@@ -101,6 +101,7 @@ public sealed class TravelInsightsService : ITravelInsightsService
         var tripPhotos = await context.TripPhotos
             .AsNoTracking()
             .Include(tp => tp.Trip)
+            .Include(tp => tp.Photo)
             .ToListAsync(cancellationToken);
 
         var places = await context.Places
@@ -549,7 +550,11 @@ public sealed class TravelInsightsService : ITravelInsightsService
                     group[i].Latitude!.Value, group[i].Longitude!.Value);
             }
 
-            var placeNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var placeNames = group
+                .Where(p => p.Latitude.HasValue && p.Longitude.HasValue)
+                .Select(p => $"{Math.Round(p.Latitude!.Value, 2)},{Math.Round(p.Longitude!.Value, 2)}")
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
             var trip = new Trip
             {
                 Name = $"Trip to {startDate:MMM yyyy}",
@@ -561,7 +566,7 @@ public sealed class TravelInsightsService : ITravelInsightsService
                 EndLongitude = lastPhoto.Longitude,
                 TotalDistanceKm = Math.Round(totalDistance, 1),
                 PhotoCount = group.Count,
-                VideoCount = group.Count(p => IsVideoExtension(p.Extension)),
+                VideoCount = group.Count(p => IsVideoExtension(p.Extension ?? "")),
                 PlaceCount = placeNames.Count,
                 CoverPhotoPath = firstPhoto.ThumbnailMediumPath ?? firstPhoto.ThumbnailSmallPath ?? firstPhoto.ThumbnailPath,
                 CoverPhotoId = firstPhoto.Id,

@@ -26,7 +26,7 @@ public sealed class Program
     {
         var folderPath = args.Length > 0
             ? args[0]
-            : @"C:\Users\vishw\Downloads\06-02-2022(f)";
+            : @"C:\Users\vishw\Downloads\Testfolder";
 
         if (!Directory.Exists(folderPath))
         {
@@ -52,12 +52,25 @@ public sealed class Program
             Console.WriteLine("Deleted previous test database.");
         }
 
+        var facesDir = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "PhotoSort", "Faces");
+        if (Directory.Exists(facesDir))
+        {
+            Directory.Delete(facesDir, recursive: true);
+            Console.WriteLine("Cleaned up stale face crop files.");
+        }
+
         var host = CreateHost(folderPath);
         var services = host.Services;
 
         var allSuites = new List<TestSuite>();
         var memoryTracker = new MemoryTracker(TimeSpan.FromSeconds(2));
         var perfTracker = new PerformanceTracker();
+
+        // Run ONNX model diagnostics first
+        await OnnxDiag.RunAsync();
+        Console.WriteLine();
 
         try
         {

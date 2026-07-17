@@ -15,11 +15,11 @@ public sealed class DuplicateDetectionService : IDuplicateDetectionService
     private readonly IPhotoRepository _photoRepository;
     private readonly ILogger<DuplicateDetectionService> _logger;
 
-    private readonly CancellationTokenSource _cts;
     private readonly ManualResetEventSlim _pauseEvent;
     private readonly object _progressLock;
     private readonly List<DuplicateGroup> _results;
 
+    private CancellationTokenSource? _currentRunCts;
     private DuplicateDetectionProgress _progress;
     private Task? _detectionTask;
     private bool _disposed;
@@ -46,7 +46,6 @@ public sealed class DuplicateDetectionService : IDuplicateDetectionService
         _photoRepository = photoRepository;
         _logger = logger;
 
-        _cts = new CancellationTokenSource();
         _pauseEvent = new ManualResetEventSlim(true);
         _progressLock = new object();
         _results = [];
@@ -64,7 +63,8 @@ public sealed class DuplicateDetectionService : IDuplicateDetectionService
 
         _results.Clear();
 
-        var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token, cancellationToken);
+        _currentRunCts = new CancellationTokenSource();
+        var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(_currentRunCts.Token, cancellationToken);
 
         _detectionTask = Task.Run(() => RunDetectionAsync(linkedCts.Token), linkedCts.Token);
 
@@ -76,6 +76,11 @@ public sealed class DuplicateDetectionService : IDuplicateDetectionService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Duplicate detection failed");
+        }
+        finally
+        {
+            _currentRunCts?.Dispose();
+            _currentRunCts = null;
         }
     }
 
@@ -108,7 +113,7 @@ public sealed class DuplicateDetectionService : IDuplicateDetectionService
     public void CancelDetection()
     {
         _pauseEvent.Set();
-        _cts.Cancel();
+        _currentRunCts?.Cancel();
     }
 
     public DuplicateDetectionProgress GetProgress()
@@ -266,8 +271,8 @@ public sealed class DuplicateDetectionService : IDuplicateDetectionService
             return;
 
         _disposed = true;
-        _cts.Cancel();
-        _cts.Dispose();
+        _currentRunCts?.Cancel();
+        _currentRunCts?.Dispose();
         _pauseEvent.Dispose();
     }
 
@@ -291,7 +296,19 @@ public sealed class DuplicateDetectionService : IDuplicateDetectionService
 
             // Phase 3: Group by hash
             UpdatePhase(DuplicateDetectionPhase.Grouping);
-            var groups = GroupDuplicates(hashedCandidates);
+
+            // Load thumbnail paths for all hashed photos so the UI shows images, not black placeholders
+            var hashedIds = hashedCandidates.Select(c => c.Id).ToHashSet();
+            Dictionary<int, string?> thumbnailPaths;
+            await using (var ctx = await _contextFactory.CreateDbContextAsync(cancellationToken))
+            {
+                thumbnailPaths = await ctx.Photos
+                    .Where(p => hashedIds.Contains(p.Id))
+                    .Select(p => new { p.Id, p.ThumbnailSmallPath })
+                    .ToDictionaryAsync(p => p.Id, p => p.ThumbnailSmallPath, cancellationToken);
+            }
+
+            var groups = GroupDuplicates(hashedCandidates, thumbnailPaths);
 
             // Save to database
             await SaveGroupsToDatabaseAsync(groups, cancellationToken);
@@ -458,7 +475,8 @@ public sealed class DuplicateDetectionService : IDuplicateDetectionService
     }
 
     private List<DuplicateGroup> GroupDuplicates(
-        List<(int Id, string FilePath, long FileSize, string Hash)> hashedFiles)
+        List<(int Id, string FilePath, long FileSize, string Hash)> hashedFiles,
+        IReadOnlyDictionary<int, string?>? thumbnailPaths = null)
     {
         var groups = hashedFiles
             .GroupBy(f => f.Hash)
@@ -467,6 +485,8 @@ public sealed class DuplicateDetectionService : IDuplicateDetectionService
             {
                 var files = g.OrderByDescending(f => f.FileSize).ToList();
                 var original = files.First();
+
+                var originalThumbPath = thumbnailPaths is not null && thumbnailPaths.TryGetValue(original.Id, out var ot) ? ot : null;
 
                 var group = new DuplicateGroup
                 {
@@ -480,6 +500,7 @@ public sealed class DuplicateDetectionService : IDuplicateDetectionService
                         FileName = System.IO.Path.GetFileName(original.FilePath),
                         Extension = System.IO.Path.GetExtension(original.FilePath),
                         FileSize = original.FileSize,
+                        ThumbnailSmallPath = originalThumbPath,
                         ModifiedDateUtc = DateTime.UtcNow,
                         FolderId = 0
                     }
@@ -487,12 +508,14 @@ public sealed class DuplicateDetectionService : IDuplicateDetectionService
 
                 foreach (var file in files.Skip(1))
                 {
+                    var dupeThumb = thumbnailPaths is not null && thumbnailPaths.TryGetValue(file.Id, out var t) ? t : null;
                     group.Duplicates.Add(new DuplicatePhoto
                     {
                         Id = file.Id,
                         FilePath = file.FilePath,
                         FileName = System.IO.Path.GetFileName(file.FilePath),
-                        FileSize = file.FileSize
+                        FileSize = file.FileSize,
+                        ThumbnailSmallPath = dupeThumb
                     });
                 }
 

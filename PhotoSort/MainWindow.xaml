@@ -147,6 +147,41 @@
                             </StackPanel>
                         </Border>
 
+                        <!-- Section: Folders -->
+                        <TextBlock Text="FOLDERS" FontSize="10" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource SidebarSectionTitleBrush}"
+                                   Margin="20,16,0,8" />
+
+                        <ItemsControl ItemsSource="{Binding Folders}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Margin="8,1" Padding="12,9"
+                                            CornerRadius="8" Cursor="Hand"
+                                            Background="{DynamicResource SidebarItemBackground}">
+                                        <Border.InputBindings>
+                                            <MouseBinding Gesture="LeftClick"
+                                                Command="{Binding DataContext.SelectFolderCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                CommandParameter="{Binding}" />
+                                        </Border.InputBindings>
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="&#x1F4C1;" FontSize="15" VerticalAlignment="Center"
+                                                       Margin="0,0,10,0"
+                                                       Foreground="{DynamicResource SidebarItemForeground}" />
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding DisplayName}" FontSize="13"
+                                                           Foreground="{DynamicResource SidebarItemForeground}"
+                                                           VerticalAlignment="Center" />
+                                                <TextBlock Text="{Binding PhotoCount, StringFormat='{}{0} photos'}"
+                                                           FontSize="10"
+                                                           Foreground="{DynamicResource SidebarItemForeground}"
+                                                           Opacity="0.6" />
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
                         <!-- Section: Tools -->
                         <TextBlock Text="TOOLS" FontSize="10" FontWeight="SemiBold"
                                    Foreground="{DynamicResource SidebarSectionTitleBrush}"
@@ -196,14 +231,14 @@
                     </StackPanel>
                 </ScrollViewer>
 
-                <!-- Import Button -->
+                <!-- Add Folder Button -->
                 <Button Grid.Row="2"
-                        Click="OnImportPhotos"
+                        Command="{Binding AddFolderCommand}"
                         Style="{StaticResource SecondaryButton}"
                         Margin="16,0,16,16" Padding="12,10" FontSize="13">
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                         <TextBlock Text="&#x2795;" FontSize="12" VerticalAlignment="Center" Margin="0,0,8,0" />
-                        <TextBlock Text="Import Photos" VerticalAlignment="Center" />
+                        <TextBlock Text="Add Folder" VerticalAlignment="Center" />
                     </StackPanel>
                 </Button>
             </Grid>

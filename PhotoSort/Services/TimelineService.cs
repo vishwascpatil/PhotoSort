@@ -29,8 +29,7 @@ public sealed class TimelineService : ITimelineService
 
             var yearGroups = await context.Photos
                 .AsNoTracking()
-                .Where(p => p.DateTaken != null)
-                .GroupBy(p => p.DateTaken!.Value.Year)
+                .GroupBy(p => (p.DateTaken ?? p.ModifiedDateUtc).Year)
                 .Select(g => new TimelineYearGroup
                 {
                     Year = g.Key,
@@ -62,8 +61,8 @@ public sealed class TimelineService : ITimelineService
 
             var monthGroups = await context.Photos
                 .AsNoTracking()
-                .Where(p => p.DateTaken != null && p.DateTaken.Value.Year == year)
-                .GroupBy(p => p.DateTaken!.Value.Month)
+                .Where(p => (p.DateTaken ?? p.ModifiedDateUtc).Year == year)
+                .GroupBy(p => (p.DateTaken ?? p.ModifiedDateUtc).Month)
                 .Select(g => new TimelineMonthGroup
                 {
                     Year = year,
@@ -96,10 +95,9 @@ public sealed class TimelineService : ITimelineService
 
             var dayGroups = await context.Photos
                 .AsNoTracking()
-                .Where(p => p.DateTaken != null
-                    && p.DateTaken.Value.Year == year
-                    && p.DateTaken.Value.Month == month)
-                .GroupBy(p => p.DateTaken!.Value.Day)
+                .Where(p => (p.DateTaken ?? p.ModifiedDateUtc).Year == year
+                    && (p.DateTaken ?? p.ModifiedDateUtc).Month == month)
+                .GroupBy(p => (p.DateTaken ?? p.ModifiedDateUtc).Day)
                 .Select(g => new TimelineDayGroup
                 {
                     Year = year,
@@ -134,11 +132,10 @@ public sealed class TimelineService : ITimelineService
 
             var photos = await context.Photos
                 .AsNoTracking()
-                .Where(p => p.DateTaken != null
-                    && p.DateTaken.Value.Year == year
-                    && p.DateTaken.Value.Month == month
-                    && p.DateTaken.Value.Day == day)
-                .OrderByDescending(p => p.DateTaken)
+                .Where(p => (p.DateTaken ?? p.ModifiedDateUtc).Year == year
+                    && (p.DateTaken ?? p.ModifiedDateUtc).Month == month
+                    && (p.DateTaken ?? p.ModifiedDateUtc).Day == day)
+                .OrderByDescending(p => p.DateTaken ?? p.ModifiedDateUtc)
                 .Select(p => new GalleryPhoto
                 {
                     Id = p.Id,
@@ -160,9 +157,9 @@ public sealed class TimelineService : ITimelineService
                     ModifiedDateUtc = p.ModifiedDateUtc,
                     FolderId = p.FolderId,
                     State = p.State,
-                    DateTakenYear = p.DateTaken.Value.Year,
-                    DateTakenMonth = p.DateTaken.Value.Month,
-                    DateTakenDay = p.DateTaken.Value.Day
+                    DateTakenYear = p.DateTaken != null ? p.DateTaken.Value.Year : p.ModifiedDateUtc.Year,
+                    DateTakenMonth = p.DateTaken != null ? p.DateTaken.Value.Month : p.ModifiedDateUtc.Month,
+                    DateTakenDay = p.DateTaken != null ? p.DateTaken.Value.Day : p.ModifiedDateUtc.Day
                 })
                 .ToListAsync();
 
@@ -189,18 +186,17 @@ public sealed class TimelineService : ITimelineService
 
             var stats = await context.Photos
                 .AsNoTracking()
-                .Where(p => p.DateTaken != null)
                 .GroupBy(p => 1)
                 .Select(g => new TimelineStats
                 {
                     TotalPhotos = g.Count(),
-                    YearsCount = g.Select(p => p.DateTaken!.Value.Year).Distinct().Count(),
-                    MonthsCount = g.Select(p => new { p.DateTaken!.Value.Year, p.DateTaken.Value.Month })
+                    YearsCount = g.Select(p => (p.DateTaken ?? p.ModifiedDateUtc).Year).Distinct().Count(),
+                    MonthsCount = g.Select(p => new { Year = (p.DateTaken ?? p.ModifiedDateUtc).Year, Month = (p.DateTaken ?? p.ModifiedDateUtc).Month })
                                    .Distinct().Count(),
-                    DaysCount = g.Select(p => new { p.DateTaken!.Value.Year, p.DateTaken.Value.Month, p.DateTaken.Value.Day })
+                    DaysCount = g.Select(p => new { Year = (p.DateTaken ?? p.ModifiedDateUtc).Year, Month = (p.DateTaken ?? p.ModifiedDateUtc).Month, Day = (p.DateTaken ?? p.ModifiedDateUtc).Day })
                                  .Distinct().Count(),
-                    EarliestYear = g.Min(p => p.DateTaken!.Value.Year),
-                    LatestYear = g.Max(p => p.DateTaken!.Value.Year)
+                    EarliestYear = g.Min(p => (p.DateTaken ?? p.ModifiedDateUtc).Year),
+                    LatestYear = g.Max(p => (p.DateTaken ?? p.ModifiedDateUtc).Year)
                 })
                 .FirstOrDefaultAsync() ?? new TimelineStats();
 

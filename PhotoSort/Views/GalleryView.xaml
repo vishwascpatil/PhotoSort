@@ -87,7 +87,7 @@
                               VirtualizingPanel.ScrollUnit="Pixel">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
-                            <WrapPanel Orientation="Horizontal" ItemWidth="180" ItemHeight="218" />
+                            <WrapPanel Orientation="Horizontal" ItemWidth="180" ItemHeight="190" />
                         </ItemsPanelTemplate>
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
@@ -181,7 +181,7 @@
                                                                                           Visibility="{Binding IsLoaded, Converter={StaticResource BoolToVisibilityConverter}}">
                                                                                 <ItemsControl.ItemsPanel>
                                                                                     <ItemsPanelTemplate>
-                                                                                        <WrapPanel Orientation="Horizontal" ItemWidth="120" ItemHeight="140" />
+                                                                                         <WrapPanel Orientation="Horizontal" ItemWidth="120" ItemHeight="126" />
                                                                                     </ItemsPanelTemplate>
                                                                                 </ItemsControl.ItemsPanel>
                                                                                 <ItemsControl.ItemTemplate>

@@ -179,10 +179,14 @@ public sealed class PhotoRepository : Repository<Photo>, IPhotoRepository
     public async Task<IReadOnlyList<GalleryPhoto>> GetGalleryPageAsync(
         int skip,
         int take,
-        GallerySortMode sortMode)
+        GallerySortMode sortMode,
+        int? folderId = null)
     {
         await using var context = await ContextFactory.CreateDbContextAsync();
         var query = context.Set<Photo>().AsNoTracking();
+
+        if (folderId.HasValue)
+            query = query.Where(p => p.FolderId == folderId.Value);
 
         query = sortMode == GallerySortMode.NewestFirst
             ? query.OrderByDescending(p => p.DateTaken ?? p.ModifiedDateUtc)
@@ -224,10 +228,14 @@ public sealed class PhotoRepository : Repository<Photo>, IPhotoRepository
     public async Task<IReadOnlyList<GalleryPhoto>> GetGalleryPageAfterIdAsync(
         int afterId,
         int take,
-        GallerySortMode sortMode)
+        GallerySortMode sortMode,
+        int? folderId = null)
     {
         await using var context = await ContextFactory.CreateDbContextAsync();
         var query = context.Set<Photo>().AsNoTracking();
+
+        if (folderId.HasValue)
+            query = query.Where(p => p.FolderId == folderId.Value);
 
         query = sortMode == GallerySortMode.NewestFirst
             ? query.Where(p => p.Id < afterId)
@@ -267,10 +275,13 @@ public sealed class PhotoRepository : Repository<Photo>, IPhotoRepository
             .ToListAsync();
     }
 
-    public async Task<int> GetGalleryCountAsync()
+    public async Task<int> GetGalleryCountAsync(int? folderId = null)
     {
         await using var context = await ContextFactory.CreateDbContextAsync();
-        return await context.Set<Photo>().AsNoTracking().CountAsync();
+        var query = context.Set<Photo>().AsNoTracking();
+        if (folderId.HasValue)
+            query = query.Where(p => p.FolderId == folderId.Value);
+        return await query.CountAsync();
     }
 
     public async Task<int> GetMaxIdAsync()

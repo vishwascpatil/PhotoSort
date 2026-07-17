@@ -11,17 +11,12 @@
             Background="{DynamicResource GalleryTileBackground}"
             BorderBrush="{DynamicResource GalleryTileBorder}"
             BorderThickness="1"
-            Margin="4"
+             Margin="2"
             ClipToBounds="True"
             Cursor="Hand">
         <Grid>
-            <Grid.RowDefinitions>
-                <RowDefinition Height="*" />
-                <RowDefinition Height="Auto" />
-            </Grid.RowDefinitions>
-
             <!-- Photo Placeholder Area -->
-            <Grid Grid.Row="0"
+            <Grid
                   Background="{DynamicResource GalleryPlaceholderBackground}">
                 <!-- Static Thumbnail Image (always shown, poster frame for videos) -->
                 <Image x:Name="ThumbnailImage"
@@ -74,40 +69,6 @@
                              Fill="{DynamicResource GalleryFavoriteBrush}" />
                 </Border>
             </Grid>
-
-            <!-- Info Bar -->
-            <Border Grid.Row="1"
-                    Background="{DynamicResource GalleryTileBackground}"
-                    Padding="10,8">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-
-                    <StackPanel Grid.Column="0"
-                                VerticalAlignment="Center">
-                        <TextBlock Text="{Binding FileName}"
-                                   FontSize="12"
-                                   FontWeight="SemiBold"
-                                   Foreground="{DynamicResource GalleryTileFileName}"
-                                   TextTrimming="CharacterEllipsis"
-                                   MaxWidth="140" />
-                        <TextBlock Text="{Binding DisplayDate}"
-                                   FontSize="11"
-                                   Foreground="{DynamicResource GalleryTileDate}"
-                                   Margin="0,2,0,0"
-                                   TextTrimming="CharacterEllipsis" />
-                    </StackPanel>
-
-                    <TextBlock Grid.Column="1"
-                               Text="{Binding DisplaySize}"
-                               FontSize="10"
-                               Foreground="{DynamicResource GalleryTileDate}"
-                               VerticalAlignment="Center"
-                               Margin="8,0,0,0" />
-                </Grid>
-            </Border>
         </Grid>
     </Border>
 </UserControl>

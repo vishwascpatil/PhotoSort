@@ -100,8 +100,8 @@
         <!-- Content -->
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="300" />
                 <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="380" />
             </Grid.ColumnDefinitions>
 
             <!-- Left: Results List -->
@@ -122,7 +122,10 @@
                     <TextBlock Text="Click 'Start Scan' to detect visually similar photos"
                                FontSize="14"
                                Foreground="{DynamicResource CardDescriptionBrush}"
-                               HorizontalAlignment="Center" />
+                               HorizontalAlignment="Center"
+                               TextWrapping="Wrap"
+                               TextAlignment="Center"
+                               MaxWidth="240" />
                 </StackPanel>
 
                 <ScrollViewer VerticalScrollBarVisibility="Auto"
@@ -146,7 +149,6 @@
                                             <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
 
-                                        <!-- Thumbnail -->
                                         <Border Grid.Column="0"
                                                 Width="50"
                                                 Height="50"
@@ -156,12 +158,9 @@
                                                 Margin="0,0,12,0">
                                             <Image Source="{Binding BestPhoto.ThumbnailSmallPath, Converter={StaticResource ThumbnailToBitmapConverter}}"
                                                    RenderOptions.BitmapScalingMode="HighQuality"
-                                                   Stretch="UniformToFill"
-                                                   HorizontalAlignment="Center"
-                                                   VerticalAlignment="Center" />
+                                                   Stretch="UniformToFill" />
                                         </Border>
 
-                                        <!-- Group Info -->
                                         <StackPanel Grid.Column="1"
                                                     VerticalAlignment="Center">
                                             <StackPanel Orientation="Horizontal">
@@ -195,7 +194,6 @@
                                             </StackPanel>
                                         </StackPanel>
 
-                                        <!-- Arrow -->
                                         <TextBlock Grid.Column="2"
                                                    Text="&#x276E;"
                                                    FontSize="12"
@@ -290,7 +288,7 @@
                 </Border>
             </Grid>
 
-            <!-- Right: Details Panel -->
+            <!-- Right: Visual Comparison -->
             <Border Grid.Column="1"
                     Background="{DynamicResource CardBackground}"
                     BorderBrush="{DynamicResource GalleryStatusBarBorder}"
@@ -301,32 +299,24 @@
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
-                        <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
 
-                    <!-- Details Header -->
+                    <!-- Header -->
                     <Border Grid.Row="0"
                             Padding="16,12"
                             BorderBrush="{DynamicResource GalleryStatusBarBorder}"
                             BorderThickness="0,0,0,1">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-
-                            <StackPanel Grid.Column="0">
-                                <TextBlock Text="Group Details"
-                                           FontSize="14"
-                                           FontWeight="SemiBold"
-                                           Foreground="{DynamicResource TitleTextBrush}" />
-                                <TextBlock Text="{Binding StatusMessage}"
-                                           FontSize="11"
-                                           Foreground="{DynamicResource GalleryStatusText}"
-                                           Margin="0,4,0,0"
-                                           TextTrimming="CharacterEllipsis" />
-                            </StackPanel>
-                        </Grid>
+                        <StackPanel>
+                            <TextBlock Text="Similar Photos for Selection"
+                                       FontSize="14"
+                                       FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TitleTextBrush}" />
+                            <TextBlock Text="{Binding StatusMessage}"
+                                       FontSize="11"
+                                       Foreground="{DynamicResource GalleryStatusText}"
+                                       Margin="0,4,0,0"
+                                       TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
                     </Border>
 
                     <!-- Action Buttons -->
@@ -349,108 +339,146 @@
                         </Button>
                     </StackPanel>
 
-                    <!-- Photos Grid -->
+                    <!-- Comparison Area -->
                     <ScrollViewer Grid.Row="2"
                                   VerticalScrollBarVisibility="Auto"
-                                  HorizontalScrollBarVisibility="Disabled">
-                        <ItemsControl ItemsSource="{Binding SelectedGroupPhotos}"
-                                      Margin="16,0">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate DataType="{x:Type models:SimilarPhotoItem}">
-                                    <Border Margin="0,0,0,8"
-                                            Background="{DynamicResource CardBackground}"
-                                            CornerRadius="8"
-                                            Padding="10"
-                                            BorderBrush="{DynamicResource GalleryTileBorder}"
-                                            BorderThickness="1">
-                                        <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="50" />
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="Auto" />
-                                            </Grid.ColumnDefinitions>
+                                  HorizontalScrollBarVisibility="Auto"
+                                  Visibility="{Binding SelectedGroup, Converter={StaticResource NullToVisibilityConverter}}">
+                        <StackPanel Margin="16,0,16,12">
+                            <!-- Best Photo -->
+                            <TextBlock Text="BEST MATCH"
+                                       FontSize="11"
+                                       FontWeight="Bold"
+                                       Foreground="{DynamicResource PrimaryButtonBackground}"
+                                       Margin="0,0,0,8" />
 
-                                            <!-- Thumbnail -->
-                                            <Border Grid.Column="0"
-                                                    Width="45"
-                                                    Height="45"
-                                                    CornerRadius="4"
-                                                    ClipToBounds="True"
-                                                    Background="{DynamicResource GalleryPlaceholderBackground}"
-                                                    Margin="0,0,10,0">
-                                                <Image Source="{Binding ThumbnailSmallPath, Converter={StaticResource ThumbnailToBitmapConverter}}"
-                                                       RenderOptions.BitmapScalingMode="HighQuality"
-                                                       Stretch="UniformToFill"
-                                                       HorizontalAlignment="Center"
-                                                       VerticalAlignment="Center" />
-                                            </Border>
-
-                                            <!-- Photo Info -->
-                                            <StackPanel Grid.Column="1"
-                                                        VerticalAlignment="Center">
-                                                <TextBlock Text="{Binding FileName}"
-                                                           FontSize="12"
-                                                           FontWeight="SemiBold"
-                                                           Foreground="{DynamicResource TitleTextBrush}"
-                                                           TextTrimming="CharacterEllipsis" />
-                                                <TextBlock FontSize="10"
-                                                           Foreground="{DynamicResource GalleryStatusText}"
-                                                           Margin="0,2,0,0">
-                                                    <TextBlock.Text>
-                                                        <MultiBinding StringFormat="{}{0}  |  {1}">
-                                                            <Binding Path="DisplayDate" Mode="OneWay" />
-                                                            <Binding Path="DisplaySize" Mode="OneWay" />
-                                                        </MultiBinding>
-                                                    </TextBlock.Text>
-                                                </TextBlock>
-                                                <TextBlock Text="{Binding DisplayDistance}"
-                                                           FontSize="10"
-                                                           FontWeight="SemiBold"
-                                                           Foreground="{DynamicResource GalleryFavoriteBrush}"
-                                                           Margin="0,2,0,0" />
-                                            </StackPanel>
-
-                                            <!-- Actions -->
-                                            <StackPanel Grid.Column="2"
-                                                        Orientation="Horizontal"
-                                                        VerticalAlignment="Center">
-                                                <Border Visibility="{Binding IsBest, Converter={StaticResource BoolToVisibilityConverter}}"
-                                                        Background="{DynamicResource PrimaryButtonBackground}"
-                                                        CornerRadius="4"
-                                                        Padding="6,3">
-                                                    <TextBlock Text="BEST"
-                                                               FontSize="9"
-                                                               FontWeight="Bold"
-                                                               Foreground="White" />
-                                                </Border>
-                                                <Button Command="{Binding DataContext.DeletePhotoCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                        CommandParameter="{Binding}"
-                                                        Style="{StaticResource SecondaryButton}"
-                                                        Padding="6,4"
-                                                        FontSize="10"
-                                                        Margin="8,0,0,0"
-                                                        Visibility="{Binding IsBest, Converter={StaticResource InverseBoolToVisibilityConverter}}">
-                                                    <TextBlock Text="Delete"
-                                                               Foreground="{DynamicResource GalleryFavoriteBrush}" />
-                                                </Button>
-                                            </StackPanel>
-                                        </Grid>
+                            <Border CornerRadius="10"
+                                    Padding="0"
+                                    Margin="0,0,0,20"
+                                    BorderBrush="{DynamicResource GalleryTileBorder}"
+                                    BorderThickness="1"
+                                    ClipToBounds="True"
+                                    Width="320"
+                                    HorizontalAlignment="Left"
+                                    Background="{DynamicResource GalleryPlaceholderBackground}">
+                                <Grid>
+                                    <Image Source="{Binding SelectedGroup.BestPhoto.ThumbnailSmallPath, Converter={StaticResource ThumbnailToBitmapConverter}}"
+                                           Stretch="UniformToFill"
+                                           Height="240"
+                                           RenderOptions.BitmapScalingMode="HighQuality" />
+                                    <Border VerticalAlignment="Bottom"
+                                            Background="#AA000000"
+                                            Padding="10,6">
+                                        <TextBlock Text="{Binding SelectedGroup.BestPhoto.FileName}"
+                                                   FontSize="12"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="White"
+                                                   TextTrimming="CharacterEllipsis" />
                                     </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </ScrollViewer>
+                                </Grid>
+                            </Border>
 
-                    <!-- Empty State -->
-                    <StackPanel Grid.Row="2"
-                                VerticalAlignment="Center"
-                                HorizontalAlignment="Center"
-                                Visibility="{Binding SelectedGroup, Converter={StaticResource NullToVisibilityConverter}}">
-                        <TextBlock Text="Select a group"
-                                   FontSize="14"
-                                   Foreground="{DynamicResource GalleryStatusText}"
-                                   HorizontalAlignment="Center" />
-                    </StackPanel>
+                            <!-- Similar Photos -->
+                            <TextBlock Text="SIMILAR PHOTOS"
+                                       FontSize="11"
+                                       FontWeight="Bold"
+                                       Foreground="{DynamicResource GalleryFavoriteBrush}"
+                                       Margin="0,0,0,8" />
+
+                            <ItemsControl ItemsSource="{Binding SelectedGroupPhotos}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel Orientation="Horizontal" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type models:SimilarPhotoItem}">
+                                        <Border CornerRadius="10"
+                                                Margin="0,0,12,12"
+                                                BorderBrush="{DynamicResource GalleryTileBorder}"
+                                                BorderThickness="1"
+                                                ClipToBounds="True"
+                                                Width="240"
+                                                Background="{DynamicResource GalleryPlaceholderBackground}">
+                                            <Grid>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto" />
+                                                    <RowDefinition Height="Auto" />
+                                                </Grid.RowDefinitions>
+
+                                                <!-- Thumbnail -->
+                                                <Border Grid.Row="0"
+                                                        Height="180"
+                                                        ClipToBounds="True">
+                                                    <Image Source="{Binding ThumbnailSmallPath, Converter={StaticResource ThumbnailToBitmapConverter}}"
+                                                           Stretch="UniformToFill"
+                                                           RenderOptions.BitmapScalingMode="HighQuality" />
+                                                </Border>
+
+                                                <!-- Info & Actions -->
+                                                <Border Grid.Row="1"
+                                                        Padding="10,8"
+                                                        Background="{DynamicResource CardBackground}">
+                                                    <StackPanel>
+                                                        <TextBlock Text="{Binding FileName}"
+                                                                   FontSize="12"
+                                                                   FontWeight="SemiBold"
+                                                                   Foreground="{DynamicResource TitleTextBrush}"
+                                                                   TextTrimming="CharacterEllipsis"
+                                                                   Margin="0,0,0,4" />
+
+                                                        <StackPanel Orientation="Horizontal"
+                                                                    Margin="0,0,0,4">
+                                                            <TextBlock Text="{Binding DisplaySize}"
+                                                                       FontSize="11"
+                                                                       Foreground="{DynamicResource GalleryStatusText}"
+                                                                       Margin="0,0,12,0" />
+                                                            <TextBlock Text="{Binding DisplayDate}"
+                                                                       FontSize="11"
+                                                                       Foreground="{DynamicResource GalleryStatusText}" />
+                                                        </StackPanel>
+
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <Border Background="{DynamicResource GalleryFavoriteBrush}"
+                                                                    CornerRadius="4"
+                                                                    Padding="6,2"
+                                                                    Margin="0,0,8,0"
+                                                                    Visibility="{Binding IsBest, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                                <TextBlock Text="BEST"
+                                                                           FontSize="9"
+                                                                           FontWeight="Bold"
+                                                                           Foreground="White" />
+                                                            </Border>
+                                                            <Border Background="{DynamicResource PrimaryButtonBackground}"
+                                                                    CornerRadius="4"
+                                                                    Padding="6,2"
+                                                                    Visibility="{Binding IsBest, Converter={StaticResource InverseBoolToVisibilityConverter}}">
+                                                                <TextBlock Text="{Binding DisplayDistance}"
+                                                                           FontSize="9"
+                                                                           FontWeight="Bold"
+                                                                           Foreground="White" />
+                                                            </Border>
+                                                        </StackPanel>
+
+                                                        <Button Command="{Binding DataContext.DeletePhotoCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                CommandParameter="{Binding}"
+                                                                Style="{StaticResource SecondaryButton}"
+                                                                Padding="8,4"
+                                                                FontSize="11"
+                                                                Margin="0,6,0,0"
+                                                                Visibility="{Binding IsBest, Converter={StaticResource InverseBoolToVisibilityConverter}}">
+                                                            <TextBlock Text="Delete"
+                                                                       Foreground="{DynamicResource GalleryFavoriteBrush}" />
+                                                        </Button>
+                                                    </StackPanel>
+                                                </Border>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </ScrollViewer>
                 </Grid>
             </Border>
         </Grid>

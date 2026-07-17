@@ -17,11 +17,11 @@ public sealed class SimilarPhotoService : ISimilarPhotoService
     private readonly IThumbnailService _thumbnailService;
     private readonly ILogger<SimilarPhotoService> _logger;
 
-    private readonly CancellationTokenSource _cts;
     private readonly ManualResetEventSlim _pauseEvent;
     private readonly object _progressLock;
     private readonly List<SimilarPhotoGroup> _results;
 
+    private CancellationTokenSource? _currentRunCts;
     private SimilarPhotoDetectionProgress _progress;
     private Task? _detectionTask;
     private bool _disposed;
@@ -56,7 +56,6 @@ public sealed class SimilarPhotoService : ISimilarPhotoService
         _thumbnailService = thumbnailService;
         _logger = logger;
 
-        _cts = new CancellationTokenSource();
         _pauseEvent = new ManualResetEventSlim(true);
         _progressLock = new object();
         _results = [];
@@ -74,7 +73,8 @@ public sealed class SimilarPhotoService : ISimilarPhotoService
 
         _results.Clear();
 
-        var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token, cancellationToken);
+        _currentRunCts = new CancellationTokenSource();
+        var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(_currentRunCts.Token, cancellationToken);
 
         _detectionTask = Task.Run(() => RunDetectionAsync(linkedCts.Token), linkedCts.Token);
 
@@ -86,6 +86,11 @@ public sealed class SimilarPhotoService : ISimilarPhotoService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Similar photo detection failed");
+        }
+        finally
+        {
+            _currentRunCts?.Dispose();
+            _currentRunCts = null;
         }
     }
 
@@ -118,7 +123,7 @@ public sealed class SimilarPhotoService : ISimilarPhotoService
     public void CancelDetection()
     {
         _pauseEvent.Set();
-        _cts.Cancel();
+        _currentRunCts?.Cancel();
     }
 
     public SimilarPhotoDetectionProgress GetProgress()
@@ -362,8 +367,8 @@ public sealed class SimilarPhotoService : ISimilarPhotoService
             return;
 
         _disposed = true;
-        _cts.Cancel();
-        _cts.Dispose();
+        _currentRunCts?.Cancel();
+        _currentRunCts?.Dispose();
         _pauseEvent.Dispose();
     }
 

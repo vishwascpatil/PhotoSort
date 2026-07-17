@@ -4,6 +4,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:models="clr-namespace:PhotoSort.Models"
+             xmlns:vm="clr-namespace:PhotoSort.ViewModels"
              mc:Ignorable="d"
              d:DesignHeight="600" d:DesignWidth="900"
              Background="{DynamicResource WindowBackground}">
@@ -15,38 +16,35 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!-- Header -->
+        <!-- Header with Title + Search -->
         <Border Grid.Row="0"
                 Background="{DynamicResource CardBackground}"
                 BorderBrush="{DynamicResource GalleryStatusBarBorder}"
                 BorderThickness="0,0,0,1"
-                Padding="20,12">
+                Padding="24,16">
             <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
-                <StackPanel Grid.Column="0"
-                            Orientation="Horizontal"
-                            VerticalAlignment="Center">
-                    <TextBlock Text="&#x1F464;"
-                               FontSize="20"
-                               VerticalAlignment="Center"
-                               Margin="0,0,10,0" />
+                <StackPanel Grid.Row="0" Grid.Column="0">
                     <TextBlock Text="People"
-                               FontSize="18"
-                               FontWeight="SemiBold"
-                               Foreground="{DynamicResource TitleTextBrush}"
-                               VerticalAlignment="Center" />
+                               FontSize="24" FontWeight="SemiBold"
+                               Foreground="{DynamicResource TitleTextBrush}" />
+                    <TextBlock Text="Recognized faces from your local photo library."
+                               FontSize="14"
+                               Foreground="{DynamicResource GalleryStatusText}"
+                               Margin="0,2,0,0" />
                 </StackPanel>
 
-                <StackPanel Grid.Column="2"
+                <StackPanel Grid.Row="0" Grid.Column="1"
                             Orientation="Horizontal"
-                            VerticalAlignment="Center">
-
-                    <!-- Start Processing -->
+                            VerticalAlignment="Top">
                     <Button Command="{Binding StartProcessingCommand}"
                             Style="{StaticResource PrimaryButton}"
                             Padding="16,8"
@@ -55,11 +53,10 @@
                             Margin="0,0,8,0">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#x25B6;" FontSize="12" VerticalAlignment="Center" Margin="0,0,6,0" />
-                            <TextBlock Text="Start Detection" FontSize="13" VerticalAlignment="Center" />
+                            <TextBlock Text="Scan Folders" FontSize="13" VerticalAlignment="Center" />
                         </StackPanel>
                     </Button>
 
-                    <!-- Pause -->
                     <Button Command="{Binding PauseProcessingCommand}"
                             Style="{StaticResource SecondaryButton}"
                             Padding="16,8"
@@ -73,7 +70,6 @@
                         </StackPanel>
                     </Button>
 
-                    <!-- Resume -->
                     <Button Command="{Binding ResumeProcessingCommand}"
                             Style="{StaticResource SecondaryButton}"
                             Padding="16,8"
@@ -86,7 +82,6 @@
                         </StackPanel>
                     </Button>
 
-                    <!-- Cancel -->
                     <Button Command="{Binding CancelProcessingCommand}"
                             Style="{StaticResource SecondaryButton}"
                             Padding="16,8"
@@ -98,6 +93,40 @@
                         </StackPanel>
                     </Button>
                 </StackPanel>
+
+                <!-- Search Bar -->
+                <Border Grid.Row="1" Grid.Column="0"
+                        Grid.ColumnSpan="2"
+                        Margin="0,12,0,0"
+                        Background="{DynamicResource SurfaceContainerLow}"
+                        CornerRadius="20"
+                        BorderBrush="{DynamicResource GalleryStatusBarBorder}"
+                        BorderThickness="1"
+                        Padding="12,6">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0"
+                                   Text="&#x1F50D;"
+                                   FontSize="14"
+                                   VerticalAlignment="Center"
+                                   Margin="4,0,8,0" />
+                        <TextBox Grid.Column="1"
+                                 Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                                 Background="Transparent"
+                                 BorderThickness="0"
+                                 FontSize="14"
+                                 VerticalContentAlignment="Center"
+                                 Foreground="{DynamicResource TitleTextBrush}"
+                                 FontFamily="{DynamicResource {x:Static SystemFonts.MessageFontFamilyKey}}">
+                            <TextBox.InputBindings>
+                                <KeyBinding Key="Escape" Command="{Binding ClearSearchCommand}" />
+                            </TextBox.InputBindings>
+                        </TextBox>
+                    </Grid>
+                </Border>
             </Grid>
         </Border>
 
@@ -105,111 +134,190 @@
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="380" />
+                <ColumnDefinition Width="380"
+                                  MinWidth="320" />
             </Grid.ColumnDefinitions>
 
-            <!-- Left: People Grid -->
-            <Grid Grid.Column="0">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="*" />
-                </Grid.RowDefinitions>
+            <!-- Left: People Content -->
+            <ScrollViewer Grid.Column="0"
+                          VerticalScrollBarVisibility="Auto"
+                          Padding="24,16,16,16">
+                <StackPanel>
 
-                <!-- Stats -->
-                <Border Grid.Row="0"
-                        Margin="16,16,16,0"
-                        Background="{DynamicResource CardBackground}"
-                        CornerRadius="12"
-                        Padding="20">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
+                    <!-- ===== Unnamed Faces Section ===== -->
+                    <Border x:Name="UnnamedSection"
+                            Background="{DynamicResource SurfaceContainerLow}"
+                            CornerRadius="16"
+                            Padding="24"
+                            BorderBrush="{DynamicResource GalleryStatusBarBorder}"
+                            BorderThickness="1"
+                            Margin="0,0,0,24"
+                            Visibility="{Binding HasUnnamedFaces, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <StackPanel>
+                            <!-- Section Header -->
+                            <Grid Margin="0,0,0,16">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
 
-                        <StackPanel Grid.Column="0" HorizontalAlignment="Center">
-                            <TextBlock Text="&#x1F465;" FontSize="20" HorizontalAlignment="Center" />
-                            <TextBlock Text="{Binding TotalPeopleCount}"
-                                       FontSize="22" FontWeight="Bold"
-                                       Foreground="{DynamicResource GalleryMetricText}"
-                                       HorizontalAlignment="Center" />
-                            <TextBlock Text="People" FontSize="11"
-                                       Foreground="{DynamicResource GalleryStatusText}"
-                                       HorizontalAlignment="Center" />
+                                <TextBlock Grid.Column="0"
+                                           Text="&#x1F9E0;"
+                                           FontSize="20"
+                                           VerticalAlignment="Center"
+                                           Margin="0,0,8,0" />
+                                <TextBlock Grid.Column="1"
+                                           Text="Identify These Faces"
+                                           FontSize="18" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource TitleTextBrush}"
+                                           VerticalAlignment="Center" />
+                                <Border Grid.Column="2"
+                                        Background="{DynamicResource ErrorContainer}"
+                                        CornerRadius="10"
+                                        Padding="8,2"
+                                        Margin="8,0,0,0"
+                                        VerticalAlignment="Center"
+                                        HorizontalAlignment="Left">
+                                    <TextBlock FontSize="11" FontWeight="Bold"
+                                               Foreground="{DynamicResource OnErrorContainer}">
+                                        <TextBlock.Text>
+                                            <MultiBinding StringFormat="{}{0} Needs naming">
+                                                <Binding Path="UnnamedFaces.Count" />
+                                            </MultiBinding>
+                                        </TextBlock.Text>
+                                    </TextBlock>
+                                </Border>
+
+                                <Button Grid.Column="3"
+                                        Command="{Binding DismissAllUnnamedCommand}"
+                                        Style="{StaticResource SecondaryButton}"
+                                        Padding="8,4"
+                                        FontSize="11"
+                                        VerticalAlignment="Center">
+                                    <TextBlock Text="Dismiss all" />
+                                </Button>
+                            </Grid>
+
+                            <!-- Unnamed Face Grid -->
+                            <ItemsControl ItemsSource="{Binding UnnamedFaces}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel Orientation="Horizontal" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type models:FaceInfo}">
+                                        <Border Margin="6"
+                                                Padding="4"
+                                                Cursor="Hand"
+                                                MouseLeftButtonDown="OnUnnamedFaceClick">
+                                            <StackPanel HorizontalAlignment="Center">
+                                                <Border Width="100"
+                                                        Height="100"
+                                                        CornerRadius="50"
+                                                        ClipToBounds="True"
+                                                        BorderBrush="{DynamicResource PrimaryButtonBackground}"
+                                                        BorderThickness="2"
+                                                        
+                                                        Background="{DynamicResource GalleryPlaceholderBackground}">
+                                                    <Grid>
+                                                        <Image Source="{Binding ThumbnailPath, Converter={StaticResource ThumbnailToBitmapConverter}}"
+                                                               RenderOptions.BitmapScalingMode="HighQuality"
+                                                               Stretch="UniformToFill"
+                                                               HorizontalAlignment="Center"
+                                                               VerticalAlignment="Center" />
+                                                        <Border VerticalAlignment="Bottom"
+                                                                HorizontalAlignment="Right"
+                                                                Background="{DynamicResource PrimaryButtonBackground}"
+                                                                CornerRadius="12"
+                                                                Width="24" Height="24"
+                                                                Margin="0,0,2,2"
+                                                                BorderThickness="2"
+                                                                BorderBrush="{DynamicResource CardBackground}">
+                                                            <TextBlock Text="&#x270F;"
+                                                                       FontSize="12"
+                                                                       Foreground="White"
+                                                                       HorizontalAlignment="Center"
+                                                                       VerticalAlignment="Center" />
+                                                        </Border>
+                                                    </Grid>
+                                                </Border>
+
+                                                <TextBlock Text="Add Name"
+                                                           FontSize="12" FontWeight="Bold"
+                                                           Foreground="{DynamicResource PrimaryButtonBackground}"
+                                                           HorizontalAlignment="Center"
+                                                           Margin="0,6,0,0" />
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
                         </StackPanel>
+                    </Border>
 
-                        <StackPanel Grid.Column="1" HorizontalAlignment="Center">
-                            <TextBlock Text="&#x1F5BC;" FontSize="20" HorizontalAlignment="Center" />
-                            <TextBlock Text="{Binding TotalFaceCount}"
-                                       FontSize="22" FontWeight="Bold"
-                                       Foreground="{DynamicResource GalleryMetricText}"
-                                       HorizontalAlignment="Center" />
-                            <TextBlock Text="Faces" FontSize="11"
-                                       Foreground="{DynamicResource GalleryStatusText}"
-                                       HorizontalAlignment="Center" />
-                        </StackPanel>
+                    <!-- ===== Empty State ===== -->
+                    <StackPanel VerticalAlignment="Center"
+                                HorizontalAlignment="Center"
+                                Visibility="{Binding HasPeople, Converter={StaticResource InverseBoolToVisibilityConverter}}"
+                                Margin="0,60,0,0">
+                        <TextBlock Text="&#x1F464;"
+                                   FontSize="48"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,0,0,16" />
+                        <TextBlock Text="No people detected yet"
+                                   FontSize="18" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TitleTextBrush}"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,0,0,8" />
+                        <TextBlock Text="Click 'Scan Folders' to find faces in your photos"
+                                   FontSize="14"
+                                   Foreground="{DynamicResource CardDescriptionBrush}"
+                                   HorizontalAlignment="Center" />
+                    </StackPanel>
 
-                        <StackPanel Grid.Column="2" HorizontalAlignment="Center">
-                            <TextBlock Text="&#x1F4F1;" FontSize="20" HorizontalAlignment="Center" />
-                            <TextBlock Text="{Binding UnprocessedPhotoCount}"
-                                       FontSize="22" FontWeight="Bold"
-                                       Foreground="{DynamicResource GalleryMetricText}"
-                                       HorizontalAlignment="Center" />
-                            <TextBlock Text="Pending" FontSize="11"
-                                       Foreground="{DynamicResource GalleryStatusText}"
-                                       HorizontalAlignment="Center" />
-                        </StackPanel>
+                    <!-- ===== Your Collection Section ===== -->
+                    <StackPanel Visibility="{Binding HasPeople, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <!-- Section Header -->
+                        <Grid Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
 
-                        <StackPanel Grid.Column="3" HorizontalAlignment="Center">
-                            <TextBlock Text="&#x1F3A8;" FontSize="20" HorizontalAlignment="Center" />
-                            <TextBlock Text="{Binding EmbeddedFaceCount}"
-                                       FontSize="22" FontWeight="Bold"
-                                       Foreground="{DynamicResource GalleryMetricText}"
-                                       HorizontalAlignment="Center" />
-                            <TextBlock Text="Embedded" FontSize="11"
-                                       Foreground="{DynamicResource GalleryStatusText}"
-                                       HorizontalAlignment="Center" />
-                        </StackPanel>
-                    </Grid>
-                </Border>
-
-                <!-- People Grid -->
-                <ScrollViewer Grid.Row="1"
-                              VerticalScrollBarVisibility="Auto"
-                              Margin="16,16,16,16">
-                    <Grid>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="*" />
-                        </Grid.RowDefinitions>
-
-                        <!-- Empty State -->
-                        <StackPanel Grid.Row="0"
-                                    VerticalAlignment="Center"
-                                    HorizontalAlignment="Center"
-                                    Visibility="{Binding HasPeople, Converter={StaticResource InverseBoolToVisibilityConverter}}">
-                            <TextBlock Text="&#x1F464;"
-                                       FontSize="48"
-                                       HorizontalAlignment="Center"
-                                       Margin="0,0,0,16" />
-                            <TextBlock Text="No people detected yet"
-                                       FontSize="18"
-                                       FontWeight="SemiBold"
+                            <TextBlock Grid.Column="0"
+                                       Text="Your Collection"
+                                       FontSize="18" FontWeight="SemiBold"
                                        Foreground="{DynamicResource TitleTextBrush}"
-                                       HorizontalAlignment="Center"
-                                       Margin="0,0,0,8" />
-                            <TextBlock Text="Click 'Start Detection' to find faces in your photos"
-                                       FontSize="14"
-                                       Foreground="{DynamicResource CardDescriptionBrush}"
-                                       HorizontalAlignment="Center" />
-                        </StackPanel>
+                                       VerticalAlignment="Center" />
 
-                        <!-- People Tiles -->
-                        <ItemsControl Grid.Row="1"
-                                      ItemsSource="{Binding People}"
-                                      Visibility="{Binding HasPeople, Converter={StaticResource BoolToVisibilityConverter}}">
+                            <StackPanel Grid.Column="2"
+                                        Orientation="Horizontal"
+                                        VerticalAlignment="Center">
+                                <TextBlock Text="Sort by:"
+                                           FontSize="12"
+                                           Foreground="{DynamicResource GalleryStatusText}"
+                                           VerticalAlignment="Center"
+                                           Margin="0,0,6,0" />
+                                <ComboBox SelectedIndex="{Binding SortMode, Mode=TwoWay}"
+                                          Background="Transparent"
+                                          BorderThickness="0"
+                                          FontSize="12"
+                                          Foreground="{DynamicResource PrimaryButtonBackground}"
+                                          Cursor="Hand"
+                                          MinWidth="100">
+                                    <ComboBoxItem Content="Most Frequent" />
+                                    <ComboBoxItem Content="Alphabetical" />
+                                    <ComboBoxItem Content="Recent" />
+                                </ComboBox>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- People Grid -->
+                        <ItemsControl ItemsSource="{Binding FilteredPeople}">
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate>
                                     <WrapPanel Orientation="Horizontal" />
@@ -218,49 +326,76 @@
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate DataType="{x:Type models:PersonInfo}">
                                     <Border Margin="8"
-                                            Width="140"
-                                            Background="{DynamicResource CardBackground}"
-                                            CornerRadius="12"
-                                            Padding="12"
-                                            BorderBrush="{DynamicResource GalleryTileBorder}"
-                                            BorderThickness="1"
+                                            Padding="8"
                                             Cursor="Hand"
-                                            MouseLeftButtonDown="OnPersonClick">
+                                            MouseLeftButtonDown="OnPersonClick"
+                                            Background="Transparent"
+                                            CornerRadius="12">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Style.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter Property="Background" Value="{DynamicResource SurfaceContainerHigh}" />
+                                                    </Trigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
                                         <StackPanel HorizontalAlignment="Center">
-                                            <!-- Thumbnail -->
-                                            <Border Width="80"
-                                                    Height="80"
-                                                    CornerRadius="40"
+                                            <!-- Circular Thumbnail -->
+                                            <Border Width="128"
+                                                    Height="128"
+                                                    CornerRadius="64"
                                                     ClipToBounds="True"
                                                     Background="{DynamicResource GalleryPlaceholderBackground}"
                                                     HorizontalAlignment="Center"
-                                                    Margin="0,0,0,10">
-                                                <Image Source="{Binding ThumbnailPath, Converter={StaticResource ThumbnailToBitmapConverter}}"
-                                                       RenderOptions.BitmapScalingMode="HighQuality"
-                                                       Stretch="UniformToFill"
-                                                       HorizontalAlignment="Center"
-                                                       VerticalAlignment="Center" />
+                                                    Margin="0,0,0,8"
+                                                    BorderBrush="{DynamicResource GalleryStatusBarBorder}"
+                                                    BorderThickness="1">
+                                                <Grid>
+                                                    <Image Source="{Binding ThumbnailPath, Converter={StaticResource ThumbnailToBitmapConverter}}"
+                                                           RenderOptions.BitmapScalingMode="HighQuality"
+                                                           Stretch="UniformToFill"
+                                                           HorizontalAlignment="Center"
+                                                           VerticalAlignment="Center">
+                                                        <Image.Style>
+                                                            <Style TargetType="Image">
+                                                                <Setter Property="Opacity" Value="0.5" />
+                                                                <Style.Triggers>
+                                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                                        <Setter Property="Opacity" Value="1" />
+                                                                    </Trigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Image.Style>
+                                                    </Image>
+                                                    <Border Opacity="0"
+                                                            Background="{DynamicResource PrimaryButtonBackground}"
+                                                            CornerRadius="64"
+                                                            MouseLeftButtonDown="OnPersonClick">
+                                                        <Border.Style>
+                                                            <Style TargetType="Border">
+                                                                <Style.Triggers>
+                                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                                        <Setter Property="Opacity" Value="0.1" />
+                                                                    </Trigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Border.Style>
+                                                    </Border>
+                                                </Grid>
                                             </Border>
 
                                             <!-- Name -->
                                             <TextBlock Text="{Binding Name}"
-                                                       FontSize="13"
-                                                       FontWeight="SemiBold"
+                                                       FontSize="14" FontWeight="SemiBold"
                                                        Foreground="{DynamicResource TitleTextBrush}"
                                                        HorizontalAlignment="Center"
                                                        TextTrimming="CharacterEllipsis"
-                                                       MaxWidth="120" />
+                                                       MaxWidth="140" />
 
-                                            <!-- Face Count -->
-                                            <TextBlock Text="{Binding DisplayFaceCount}"
-                                                       FontSize="11"
-                                                       Foreground="{DynamicResource GalleryStatusText}"
-                                                       HorizontalAlignment="Center"
-                                                       Margin="0,2,0,0" />
-
-                                            <!-- Last Seen -->
-                                            <TextBlock Text="{Binding DisplayLastSeen}"
-                                                       FontSize="10"
+                                            <!-- Photo Count -->
+                                            <TextBlock Text="{Binding DisplayPhotoCount}"
+                                                       FontSize="12"
                                                        Foreground="{DynamicResource GalleryStatusText}"
                                                        HorizontalAlignment="Center"
                                                        Margin="0,2,0,0" />
@@ -269,103 +404,9 @@
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
-                    </Grid>
-                </ScrollViewer>
-
-                <!-- Progress Overlay -->
-                <Border Background="#80000000"
-                        Visibility="{Binding IsProcessing, Converter={StaticResource BoolToVisibilityConverter}}">
-                    <StackPanel VerticalAlignment="Center"
-                                HorizontalAlignment="Center">
-                        <Border Background="{DynamicResource CardBackground}"
-                                CornerRadius="12"
-                                Padding="32"
-                                MinWidth="320">
-                            <StackPanel>
-                                <TextBlock Text="{Binding CurrentPhaseDisplay}"
-                                           FontSize="16"
-                                           FontWeight="SemiBold"
-                                           Foreground="{DynamicResource TitleTextBrush}"
-                                           HorizontalAlignment="Center"
-                                           Margin="0,0,0,16" />
-
-                                <TextBlock FontSize="12"
-                                           Foreground="{DynamicResource GalleryStatusText}"
-                                           HorizontalAlignment="Center"
-                                           Margin="0,0,0,8">
-                                    <TextBlock.Text>
-                                        <MultiBinding StringFormat="Processing {0} of {1} photos ({2:F0}%)">
-                                            <Binding Path="CurrentPhotosProcessed" Mode="OneWay" />
-                                            <Binding Path="CurrentTotalPhotos" Mode="OneWay" />
-                                            <Binding Path="CurrentProgressPercent" Mode="OneWay" />
-                                        </MultiBinding>
-                                    </TextBlock.Text>
-                                </TextBlock>
-
-                                <Border Background="{DynamicResource GallerySkeletonBrush}"
-                                        CornerRadius="4"
-                                        Height="8"
-                                        Margin="0,0,0,12">
-                                    <Border Background="{DynamicResource PrimaryButtonBackground}"
-                                            CornerRadius="4"
-                                            HorizontalAlignment="Left"
-                                            Width="{Binding CurrentProgressPercent, Mode=OneWay}" />
-                                </Border>
-
-                                <Grid Margin="0,0,0,8">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <StackPanel Grid.Column="0">
-                                        <TextBlock Text="Photos Processed"
-                                                   FontSize="10"
-                                                   Foreground="{DynamicResource GalleryStatusText}" />
-                                        <TextBlock Text="{Binding CurrentPhotosProcessed, Mode=OneWay}"
-                                                   FontSize="14"
-                                                   FontWeight="SemiBold"
-                                                   Foreground="{DynamicResource TitleTextBrush}" />
-                                    </StackPanel>
-                                    <StackPanel Grid.Column="1">
-                                        <TextBlock Text="Faces Detected"
-                                                   FontSize="10"
-                                                   Foreground="{DynamicResource GalleryStatusText}" />
-                                        <TextBlock Text="{Binding CurrentFacesDetected, Mode=OneWay}"
-                                                   FontSize="14"
-                                                   FontWeight="SemiBold"
-                                                   Foreground="{DynamicResource TitleTextBrush}" />
-                                    </StackPanel>
-                                </Grid>
-
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <StackPanel Grid.Column="0">
-                                        <TextBlock Text="Embeddings"
-                                                   FontSize="10"
-                                                   Foreground="{DynamicResource GalleryStatusText}" />
-                                        <TextBlock Text="{Binding CurrentEmbeddingsGenerated, Mode=OneWay}"
-                                                   FontSize="14"
-                                                   FontWeight="SemiBold"
-                                                   Foreground="{DynamicResource TitleTextBrush}" />
-                                    </StackPanel>
-                                    <StackPanel Grid.Column="1">
-                                        <TextBlock Text="People Found"
-                                                   FontSize="10"
-                                                   Foreground="{DynamicResource GalleryStatusText}" />
-                                        <TextBlock Text="{Binding CurrentPeopleIdentified, Mode=OneWay}"
-                                                   FontSize="14"
-                                                   FontWeight="SemiBold"
-                                                   Foreground="{DynamicResource GalleryMetricText}" />
-                                    </StackPanel>
-                                </Grid>
-                            </StackPanel>
-                        </Border>
                     </StackPanel>
-                </Border>
-            </Grid>
+                </StackPanel>
+            </ScrollViewer>
 
             <!-- Right: Person Details -->
             <Border Grid.Column="1"
@@ -392,15 +433,12 @@
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
 
-                                <!-- Name Display -->
                                 <StackPanel Grid.Column="0"
                                             Visibility="{Binding IsRenameMode, Converter={StaticResource InverseBoolToVisibilityConverter}}">
                                     <TextBlock Text="{Binding SelectedPerson.Name}"
-                                               FontSize="16"
-                                               FontWeight="SemiBold"
+                                               FontSize="16" FontWeight="SemiBold"
                                                Foreground="{DynamicResource TitleTextBrush}" />
-                                    <TextBlock FontSize="11"
-                                               FontWeight="SemiBold"
+                                    <TextBlock FontSize="11" FontWeight="SemiBold"
                                                Foreground="{DynamicResource GalleryStatusText}"
                                                Margin="0,4,0,0">
                                         <TextBlock.Text>
@@ -412,13 +450,11 @@
                                     </TextBlock>
                                 </StackPanel>
 
-                                <!-- Rename Input -->
                                 <StackPanel Grid.Column="0"
                                             Orientation="Horizontal"
                                             Visibility="{Binding IsRenameMode, Converter={StaticResource BoolToVisibilityConverter}}">
                                     <TextBox Text="{Binding RenameText, UpdateSourceTrigger=PropertyChanged}"
-                                             Width="200"
-                                             Height="28"
+                                             Width="200" Height="28"
                                              FontSize="13"
                                              Margin="0,0,8,0"
                                              VerticalContentAlignment="Center" />
@@ -430,7 +466,6 @@
                                     </Button>
                                 </StackPanel>
 
-                                <!-- Rename Button -->
                                 <Button Grid.Column="1"
                                         Command="{Binding RenamePersonCommand}"
                                         Style="{StaticResource SecondaryButton}"
@@ -447,7 +482,6 @@
                     <!-- Action Buttons -->
                     <StackPanel Grid.Row="1"
                                 Margin="16,12">
-                        <!-- Row 1: Merge, Reprocess -->
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                             <Button Command="{Binding MergePeopleCommand}"
                                     Style="{StaticResource PrimaryButton}"
@@ -472,7 +506,6 @@
                             </Button>
                         </StackPanel>
 
-                        <!-- Row 2: Split Mode Toggle -->
                         <StackPanel Orientation="Horizontal">
                             <Button Command="{Binding ToggleSplitModeCommand}"
                                     Style="{StaticResource SecondaryButton}"
@@ -493,12 +526,10 @@
                                 </TextBlock>
                             </Button>
 
-                            <!-- Split Confirm (visible in split mode) -->
                             <StackPanel Orientation="Horizontal"
                                         Visibility="{Binding IsSplitMode, Converter={StaticResource BoolToVisibilityConverter}}">
                                 <TextBox Text="{Binding NewPersonName, UpdateSourceTrigger=PropertyChanged}"
-                                         Width="140"
-                                         Height="28"
+                                         Width="140" Height="28"
                                          FontSize="11"
                                          Margin="0,0,6,0"
                                          VerticalContentAlignment="Center"
@@ -536,10 +567,8 @@
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
 
-                                            <!-- Split Checkbox (visible in split mode) -->
                                             <Border Grid.Column="0"
-                                                    Width="20"
-                                                    Height="20"
+                                                    Width="20" Height="20"
                                                     CornerRadius="4"
                                                     BorderBrush="{DynamicResource GalleryTileBorder}"
                                                     BorderThickness="1"
@@ -554,10 +583,8 @@
                                                            Foreground="{DynamicResource PrimaryButtonBackground}" />
                                             </Border>
 
-                                            <!-- Face Thumbnail -->
                                             <Border Grid.Column="0"
-                                                    Width="45"
-                                                    Height="45"
+                                                    Width="45" Height="45"
                                                     CornerRadius="4"
                                                     ClipToBounds="True"
                                                     Background="{DynamicResource GalleryPlaceholderBackground}"
@@ -569,12 +596,10 @@
                                                        VerticalAlignment="Center" />
                                             </Border>
 
-                                            <!-- Face Info -->
                                             <StackPanel Grid.Column="1"
                                                         VerticalAlignment="Center">
                                                 <TextBlock Text="{Binding FileName}"
-                                                           FontSize="12"
-                                                           FontWeight="SemiBold"
+                                                           FontSize="12" FontWeight="SemiBold"
                                                            Foreground="{DynamicResource TitleTextBrush}"
                                                            TextTrimming="CharacterEllipsis" />
                                                 <TextBlock Text="{Binding DisplayConfidence, Mode=OneWay, StringFormat='{}{0} confidence'}"
@@ -583,12 +608,11 @@
                                                            Margin="0,2,0,0" />
                                             </StackPanel>
 
-                                            <!-- Action Buttons -->
                                             <StackPanel Grid.Column="2"
                                                         Orientation="Horizontal"
                                                         VerticalAlignment="Center">
-                                                 <Button Command="{Binding DataContext.IgnoreFaceCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                         CommandParameter="{Binding}"
+                                                <Button Command="{Binding DataContext.IgnoreFaceCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                        CommandParameter="{Binding}"
                                                         Style="{StaticResource SecondaryButton}"
                                                         Padding="6,4"
                                                         FontSize="10"
@@ -596,8 +620,8 @@
                                                     <TextBlock Text="Ignore"
                                                                Foreground="{DynamicResource GalleryFavoriteBrush}" />
                                                 </Button>
-                                                 <Button Command="{Binding DataContext.DeleteFaceCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                         CommandParameter="{Binding}"
+                                                <Button Command="{Binding DataContext.DeleteFaceCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                        CommandParameter="{Binding}"
                                                         Style="{StaticResource SecondaryButton}"
                                                         Padding="6,4"
                                                         FontSize="10">
@@ -644,36 +668,31 @@
 
                 <TextBlock Grid.Column="0"
                            Text="{Binding TotalPeopleCount, Mode=OneWay, StringFormat='People: {0}'}"
-                           FontSize="12"
-                           FontWeight="SemiBold"
+                           FontSize="12" FontWeight="SemiBold"
                            Foreground="{DynamicResource GalleryMetricText}"
                            VerticalAlignment="Center" />
 
                 <TextBlock Grid.Column="1"
                            Text="{Binding TotalFaceCount, Mode=OneWay, StringFormat='Faces: {0}'}"
-                           FontSize="12"
-                           FontWeight="SemiBold"
+                           FontSize="12" FontWeight="SemiBold"
                            Foreground="{DynamicResource GalleryMetricText}"
                            VerticalAlignment="Center"
                            Margin="24,0,0,0" />
 
                 <TextBlock Grid.Column="2"
                            Text="{Binding EmbeddedFaceCount, Mode=OneWay, StringFormat='Embedded: {0}'}"
-                           FontSize="12"
-                           FontWeight="SemiBold"
+                           FontSize="12" FontWeight="SemiBold"
                            Foreground="{DynamicResource GalleryMetricText}"
                            VerticalAlignment="Center"
                            Margin="24,0,0,0" />
 
                 <TextBlock Grid.Column="3"
                            Text="{Binding UnprocessedPhotoCount, Mode=OneWay, StringFormat='Pending: {0}'}"
-                           FontSize="12"
-                           FontWeight="SemiBold"
+                           FontSize="12" FontWeight="SemiBold"
                            Foreground="{DynamicResource GalleryMetricText}"
                            VerticalAlignment="Center"
                            Margin="24,0,0,0" />
 
-                <!-- Split Mode Indicator -->
                 <Border Grid.Column="4"
                         VerticalAlignment="Center"
                         Margin="24,0,0,0"
@@ -695,6 +714,128 @@
                            MaxWidth="300"
                            VerticalAlignment="Center" />
             </Grid>
+        </Border>
+
+        <!-- FAB: Add New Person -->
+        <Button Grid.Row="1"
+                Command="{Binding AddNewPersonCommand}"
+                Width="56" Height="56"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Bottom"
+                Margin="0,0,24,24"
+                Panel.ZIndex="10"
+                ToolTip="Add new person">
+            <Button.Template>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="border"
+                            Background="{DynamicResource PrimaryButtonBackground}"
+                            CornerRadius="28"
+                            BorderThickness="0">
+                        <ContentPresenter HorizontalAlignment="Center"
+                                          VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="border" Property="Background" Value="{DynamicResource PrimaryButtonHover}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Button.Template>
+            <TextBlock Text="&#x2795;"
+                       FontSize="28"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center" />
+        </Button>
+
+        <!-- Processing Overlay -->
+        <Border Grid.Row="1"
+                Background="#80000000"
+                Visibility="{Binding IsProcessing, Converter={StaticResource BoolToVisibilityConverter}}"
+                Panel.ZIndex="20">
+            <StackPanel VerticalAlignment="Center"
+                        HorizontalAlignment="Center">
+                <Border Background="{DynamicResource CardBackground}"
+                        CornerRadius="12"
+                        Padding="32"
+                        MinWidth="320">
+                    <StackPanel>
+                        <TextBlock Text="{Binding CurrentPhaseDisplay}"
+                                   FontSize="16" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TitleTextBrush}"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,0,0,16" />
+
+                        <TextBlock FontSize="12"
+                                   Foreground="{DynamicResource GalleryStatusText}"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,0,0,8">
+                            <TextBlock.Text>
+                                <MultiBinding StringFormat="Processing {0} of {1} photos ({2:F0}%)">
+                                    <Binding Path="CurrentPhotosProcessed" Mode="OneWay" />
+                                    <Binding Path="CurrentTotalPhotos" Mode="OneWay" />
+                                    <Binding Path="CurrentProgressPercent" Mode="OneWay" />
+                                </MultiBinding>
+                            </TextBlock.Text>
+                        </TextBlock>
+
+                        <Border Background="{DynamicResource GallerySkeletonBrush}"
+                                CornerRadius="4"
+                                Height="8"
+                                Margin="0,0,0,12">
+                            <Border Background="{DynamicResource PrimaryButtonBackground}"
+                                    CornerRadius="4"
+                                    HorizontalAlignment="Left"
+                                    Width="{Binding CurrentProgressPercent, Mode=OneWay}" />
+                        </Border>
+
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="Photos Processed"
+                                           FontSize="10"
+                                           Foreground="{DynamicResource GalleryStatusText}" />
+                                <TextBlock Text="{Binding CurrentPhotosProcessed, Mode=OneWay}"
+                                           FontSize="14" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource TitleTextBrush}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1">
+                                <TextBlock Text="Faces Detected"
+                                           FontSize="10"
+                                           Foreground="{DynamicResource GalleryStatusText}" />
+                                <TextBlock Text="{Binding CurrentFacesDetected, Mode=OneWay}"
+                                           FontSize="14" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource TitleTextBrush}" />
+                            </StackPanel>
+                        </Grid>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="Embeddings"
+                                           FontSize="10"
+                                           Foreground="{DynamicResource GalleryStatusText}" />
+                                <TextBlock Text="{Binding CurrentEmbeddingsGenerated, Mode=OneWay}"
+                                           FontSize="14" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource TitleTextBrush}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1">
+                                <TextBlock Text="People Found"
+                                           FontSize="10"
+                                           Foreground="{DynamicResource GalleryStatusText}" />
+                                <TextBlock Text="{Binding CurrentPeopleIdentified, Mode=OneWay}"
+                                           FontSize="14" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource GalleryMetricText}" />
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
         </Border>
     </Grid>
 </UserControl>

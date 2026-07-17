@@ -252,7 +252,7 @@ Photos.Clear();
 
         var viewer = App.Services.GetRequiredService<PhotoViewerViewModel>();
         viewer.Initialize(allPhotos, index);
-        _navigationService.NavigateTo<PhotoViewerViewModel>();
+        _navigationService.NavigateTo(viewer);
     }
 
     [RelayCommand]
@@ -383,6 +383,23 @@ Photos.Clear();
         IsGalleryEmpty = TimelineGroups.Count == 0;
         TotalCount = stats.TotalPhotos;
         LoadedCount = 0;
+
+        // Auto-expand to show photos in the most recent year/month/day
+        var mostRecentYear = TimelineGroups.FirstOrDefault();
+        if (mostRecentYear != null)
+        {
+            await ToggleYearAsync(mostRecentYear);
+            var mostRecentMonth = mostRecentYear.Months.FirstOrDefault();
+            if (mostRecentMonth != null)
+            {
+                await ToggleMonthAsync(mostRecentMonth);
+                var mostRecentDay = mostRecentMonth.Days.FirstOrDefault();
+                if (mostRecentDay != null)
+                {
+                    await ToggleDayAsync(mostRecentDay);
+                }
+            }
+        }
 
         var allPhotos = GetAllVisiblePhotos();
         EnqueueThumbnails(allPhotos, ThumbnailPriority.High);

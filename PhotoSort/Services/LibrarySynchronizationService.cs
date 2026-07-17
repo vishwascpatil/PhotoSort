@@ -224,18 +224,27 @@ public sealed class LibrarySynchronizationService : ILibrarySynchronizationServi
 
         try
         {
-            await foreach (var batch in ReadEventBatchesAsync(cancellationToken))
+            var batch = new List<FileSystemEvent>(BatchSize);
+
+            while (_eventChannel.Reader.TryRead(out var evt))
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 _pauseEvent.Wait(cancellationToken);
 
-                var batchResult = await ProcessBatchAsync(batch, cancellationToken);
+                batch.Add(evt);
 
-                result.FilesAdded += batchResult.FilesAdded;
-                result.FilesDeleted += batchResult.FilesDeleted;
-                result.FilesModified += batchResult.FilesModified;
-                result.FilesRenamed += batchResult.FilesRenamed;
-                result.ErrorsEncountered += batchResult.ErrorsEncountered;
-                result.ErrorMessages.AddRange(batchResult.ErrorMessages);
+                if (batch.Count >= BatchSize)
+                {
+                    var batchResult = await ProcessBatchAsync(batch, cancellationToken);
+                    AggregateResult(result, batchResult);
+                    batch = new List<FileSystemEvent>(BatchSize);
+                }
+            }
+
+            if (batch.Count > 0)
+            {
+                var batchResult = await ProcessBatchAsync(batch, cancellationToken);
+                AggregateResult(result, batchResult);
             }
         }
         catch (OperationCanceledException) { }
@@ -764,6 +773,7 @@ public sealed class LibrarySynchronizationService : ILibrarySynchronizationServi
         }
 
         var deletedFiles = existingPhotos.Except(currentFiles, StringComparer.OrdinalIgnoreCase);
+        var newFiles = currentFiles.Except(existingPhotos, StringComparer.OrdinalIgnoreCase);
 
         foreach (var deletedFile in deletedFiles)
         {
@@ -771,6 +781,36 @@ public sealed class LibrarySynchronizationService : ILibrarySynchronizationServi
             {
                 FilePath = deletedFile,
                 ChangeType = FileSystemChange.Deleted,
+                WatchedFolderPath = folderPath
+            }, cancellationToken);
+        }
+
+        foreach (var newFile in newFiles)
+        {
+            var extension = System.IO.Path.GetExtension(newFile);
+            if (string.IsNullOrEmpty(extension)) continue;
+            var supported = extension.Equals(".jpg", StringComparison.OrdinalIgnoreCase) ||
+                            extension.Equals(".jpeg", StringComparison.OrdinalIgnoreCase) ||
+                            extension.Equals(".png", StringComparison.OrdinalIgnoreCase) ||
+                            extension.Equals(".gif", StringComparison.OrdinalIgnoreCase) ||
+                            extension.Equals(".bmp", StringComparison.OrdinalIgnoreCase) ||
+                            extension.Equals(".webp", StringComparison.OrdinalIgnoreCase) ||
+                            extension.Equals(".heic", StringComparison.OrdinalIgnoreCase) ||
+                            extension.Equals(".heif", StringComparison.OrdinalIgnoreCase) ||
+                            extension.Equals(".tiff", StringComparison.OrdinalIgnoreCase) ||
+                            extension.Equals(".tif", StringComparison.OrdinalIgnoreCase) ||
+                            extension.Equals(".mp4", StringComparison.OrdinalIgnoreCase) ||
+                            extension.Equals(".mov", StringComparison.OrdinalIgnoreCase) ||
+                            extension.Equals(".avi", StringComparison.OrdinalIgnoreCase) ||
+                            extension.Equals(".mkv", StringComparison.OrdinalIgnoreCase) ||
+                            extension.Equals(".wmv", StringComparison.OrdinalIgnoreCase) ||
+                            extension.Equals(".webm", StringComparison.OrdinalIgnoreCase);
+            if (!supported) continue;
+
+            await _eventChannel.Writer.WriteAsync(new FileSystemEvent
+            {
+                FilePath = newFile,
+                ChangeType = FileSystemChange.Created,
                 WatchedFolderPath = folderPath
             }, cancellationToken);
         }
@@ -813,6 +853,16 @@ public sealed class LibrarySynchronizationService : ILibrarySynchronizationServi
             _progress.ActiveWatcherCount = _fileWatcherService.WatchedFolderCount;
             FireProgressChanged();
         }
+    }
+
+    private static void AggregateResult(SyncResult target, SyncResult source)
+    {
+        target.FilesAdded += source.FilesAdded;
+        target.FilesDeleted += source.FilesDeleted;
+        target.FilesModified += source.FilesModified;
+        target.FilesRenamed += source.FilesRenamed;
+        target.ErrorsEncountered += source.ErrorsEncountered;
+        target.ErrorMessages.AddRange(source.ErrorMessages);
     }
 
     private void UpdateProgressCounts(SyncResult result)

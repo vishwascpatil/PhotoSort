@@ -28,6 +28,7 @@ public sealed class GalleryDataService : IGalleryDataService
     private int _currentPageIndex = -1;
     private bool _disposed;
     private bool _initialized;
+    private int? _currentFolderId;
 
     public event EventHandler<IReadOnlyList<GalleryPhoto>>? PhotosLoaded;
     public event EventHandler<int>? TotalCountChanged;
@@ -36,6 +37,17 @@ public sealed class GalleryDataService : IGalleryDataService
     public int TotalCount => Volatile.Read(ref _totalCount);
     public int LoadedCount => Volatile.Read(ref _loadedCount);
     public GallerySortMode SortMode { get; set; } = GallerySortMode.NewestFirst;
+
+    public int? CurrentFolderId
+    {
+        get => _currentFolderId;
+        set
+        {
+            _currentFolderId = value;
+            ClearCache();
+            _ = LoadInitialPageAsync();
+        }
+    }
 
     public GalleryDataService(
         IPhotoRepository photoRepository,
@@ -56,7 +68,7 @@ public sealed class GalleryDataService : IGalleryDataService
 
         _logger.LogInformation("Initializing gallery data service...");
 
-        var count = await _photoRepository.GetGalleryCountAsync();
+        var count = await _photoRepository.GetGalleryCountAsync(_currentFolderId);
         Volatile.Write(ref _totalCount, count);
         TotalCountChanged?.Invoke(this, count);
 
@@ -75,7 +87,7 @@ public sealed class GalleryDataService : IGalleryDataService
             ClearCache();
 
             _latencyStopwatch.Restart();
-            var photos = await _photoRepository.GetGalleryPageAsync(0, pageSize, SortMode);
+            var photos = await _photoRepository.GetGalleryPageAsync(0, pageSize, SortMode, _currentFolderId);
             _latencyStopwatch.Stop();
             _lastQueryLatencyMs = _latencyStopwatch.Elapsed.TotalMilliseconds;
 
@@ -169,20 +181,20 @@ public sealed class GalleryDataService : IGalleryDataService
             return cached;
         }
 
-        await _loadLock.WaitAsync(cancellationToken);
-        try
-        {
-            _latencyStopwatch.Restart();
-            var skip = pageIndex * pageSize;
-            var photos = await _photoRepository.GetGalleryPageAsync(skip, pageSize, SortMode);
-            _latencyStopwatch.Stop();
-            _lastQueryLatencyMs = _latencyStopwatch.Elapsed.TotalMilliseconds;
+            await _loadLock.WaitAsync(cancellationToken);
+            try
+            {
+                _latencyStopwatch.Restart();
+                var skip = pageIndex * pageSize;
+                var photos = await _photoRepository.GetGalleryPageAsync(skip, pageSize, SortMode, _currentFolderId);
+                _latencyStopwatch.Stop();
+                _lastQueryLatencyMs = _latencyStopwatch.Elapsed.TotalMilliseconds;
 
-            if (photos.Count == 0)
-                return [];
+                if (photos.Count == 0)
+                    return [];
 
-            EvictOldPages(pageIndex);
-            _pageCache[pageIndex] = photos;
+                EvictOldPages(pageIndex);
+                _pageCache[pageIndex] = photos;
             _currentPageIndex = pageIndex;
             RecalculateLoadedCount();
 
@@ -203,7 +215,7 @@ public sealed class GalleryDataService : IGalleryDataService
     {
         _logger.LogInformation("Refreshing gallery...");
 
-        var newCount = await _photoRepository.GetGalleryCountAsync();
+        var newCount = await _photoRepository.GetGalleryCountAsync(_currentFolderId);
         Volatile.Write(ref _totalCount, newCount);
         TotalCountChanged?.Invoke(this, newCount);
 
@@ -252,7 +264,7 @@ public sealed class GalleryDataService : IGalleryDataService
         {
             try
             {
-                var newCount = await _photoRepository.GetGalleryCountAsync();
+                var newCount = await _photoRepository.GetGalleryCountAsync(_currentFolderId);
                 var oldCount = Volatile.Read(ref _totalCount);
 
                 Volatile.Write(ref _totalCount, newCount);
@@ -286,7 +298,7 @@ public sealed class GalleryDataService : IGalleryDataService
             _latencyStopwatch.Restart();
             var skip = pageIndex * DefaultPageSize;
             var photos = await _photoRepository.GetGalleryPageAsync(
-                skip, PrefetchPageSize, SortMode);
+                skip, PrefetchPageSize, SortMode, _currentFolderId);
             _latencyStopwatch.Stop();
 
             if (photos.Count > 0 && !_disposed && !cancellationToken.IsCancellationRequested)

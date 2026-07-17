@@ -31,15 +31,6 @@
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
-                <!-- Theme Toggle -->
-                <Button Grid.Row="0"
-                        HorizontalAlignment="Right"
-                        Style="{StaticResource ThemeToggleButton}"
-                        Command="{Binding ToggleThemeCommand}"
-                        ToolTip="Toggle light/dark theme">
-                    <TextBlock Text="&#x263E;" FontSize="16" />
-                </Button>
-
                 <!-- Title -->
                 <TextBlock Grid.Row="1"
                            Text="{Binding Title}"

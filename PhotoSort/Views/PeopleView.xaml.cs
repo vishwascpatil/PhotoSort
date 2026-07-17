@@ -35,4 +35,13 @@ public partial class PeopleView : System.Windows.Controls.UserControl
             }
         }
     }
+
+    private void OnUnnamedFaceClick(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is System.Windows.FrameworkElement element && element.DataContext is FaceInfo face
+            && DataContext is PeopleViewModel viewModel)
+        {
+            viewModel.NameFaceCommand.Execute(face);
+        }
+    }
 }

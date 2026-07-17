@@ -4,7 +4,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.Win32;
 using PhotoSort.Data;
 using PhotoSort.Data.Repositories;
 using PhotoSort.Models;
@@ -17,7 +16,6 @@ public partial class App : Application
 {
     private readonly IHost _host;
     private static readonly Uri LightThemeUri = new("Themes/LightTheme.xaml", UriKind.Relative);
-    private static readonly Uri DarkThemeUri = new("Themes/DarkTheme.xaml", UriKind.Relative);
 
     public App()
     {
@@ -120,7 +118,6 @@ public partial class App : Application
     }
 
     public static IServiceProvider Services { get; private set; } = null!;
-    public static bool IsDarkTheme { get; private set; }
 
     protected override async void OnStartup(StartupEventArgs e)
     {
@@ -163,9 +160,6 @@ public partial class App : Application
             await dbInitializer.InitializeAsync();
             File.AppendAllText(Path.Combine(Path.GetTempPath(), "photosort_startup.log"), "DB initialized.\n");
 
-            ApplySystemTheme();
-            File.AppendAllText(Path.Combine(Path.GetTempPath(), "photosort_startup.log"), "Theme applied.\n");
-
             var mainWindow = new MainWindow
             {
                 DataContext = Services.GetRequiredService<MainViewModel>()
@@ -182,7 +176,11 @@ public partial class App : Application
                     var modelProvider = Services.GetRequiredService<IFaceModelProvider>();
                     await modelProvider.InitializeAsync();
                 }
-                catch { /* model download is best-effort */ }
+                catch (Exception ex)
+                {
+                    var logger = Services.GetRequiredService<Microsoft.Extensions.Logging.ILogger<PhotoSort.App>>();
+                    logger.LogWarning(ex, "Face model download failed at startup — models will be downloaded on first use");
+                }
             });
         }
         catch (Exception ex)
@@ -215,41 +213,5 @@ public partial class App : Application
         _host.Dispose();
 
         base.OnExit(e);
-    }
-
-    public static void ToggleTheme()
-    {
-        IsDarkTheme = !IsDarkTheme;
-        ApplyTheme();
-    }
-
-    private static void ApplySystemTheme()
-    {
-        try
-        {
-            using var key = Registry.CurrentUser.OpenSubKey(
-                @"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize");
-
-            var value = key?.GetValue("AppsUseLightTheme");
-            IsDarkTheme = value is int i && i == 0;
-        }
-        catch
-        {
-            IsDarkTheme = false;
-        }
-
-        ApplyTheme();
-    }
-
-    private static void ApplyTheme()
-    {
-        var app = (App)Current;
-        var dictionaries = app.Resources.MergedDictionaries;
-
-        dictionaries.Clear();
-        dictionaries.Add(new ResourceDictionary
-        {
-            Source = IsDarkTheme ? DarkThemeUri : LightThemeUri
-        });
     }
 }

@@ -60,4 +60,8 @@ public interface IPeopleService : IDisposable
     Task<int> GetIdentifiedPeopleCountAsync(CancellationToken cancellationToken = default);
 
     Task<int> GetEmbeddedFaceCountAsync(CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<FaceInfo>> GetUnnamedFacesAsync(CancellationToken cancellationToken = default);
+
+    Task<Person> NameFaceAsync(int faceId, string name, CancellationToken cancellationToken = default);
 }

@@ -17,7 +17,11 @@ public sealed class NavigationService : INavigationService
 
     public void NavigateTo<TViewModel>() where TViewModel : class
     {
-        var viewModel = _serviceProvider.GetRequiredService<TViewModel>();
+        NavigateTo(_serviceProvider.GetRequiredService<TViewModel>());
+    }
+
+    public void NavigateTo(object viewModel)
+    {
         CurrentViewModel = viewModel;
         NavigationChanged?.Invoke(this, EventArgs.Empty);
     }

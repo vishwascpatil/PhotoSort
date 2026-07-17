@@ -1,28 +1,26 @@
-using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 
 namespace PhotoSort.Models;
 
-public sealed class TimelineYearGroup : INotifyPropertyChanged
+public sealed class SidebarFolderItem : INotifyPropertyChanged
 {
-    public int Year { get; init; }
-
+    public int Id { get; init; }
+    public required string DisplayName { get; set; }
+    public required string FolderPath { get; init; }
     public int PhotoCount { get; set; }
 
-    public ObservableCollection<TimelineMonthGroup> Months { get; } = [];
-
-    public bool IsExpanded
+    public bool IsSelected
     {
-        get => _isExpanded;
+        get => _isSelected;
         set
         {
-            if (_isExpanded == value) return;
-            _isExpanded = value;
+            if (_isSelected == value) return;
+            _isSelected = value;
             OnPropertyChanged();
         }
     }
-    private bool _isExpanded;
+    private bool _isSelected;
 
     public event PropertyChangedEventHandler? PropertyChanged;
 

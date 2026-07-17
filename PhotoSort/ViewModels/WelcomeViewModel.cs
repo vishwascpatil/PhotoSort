@@ -36,9 +36,6 @@ public partial class WelcomeViewModel : ObservableObject
     private string _tourButtonText = "Take a Guided Tour";
 
     [ObservableProperty]
-    private string _themeToggleText = "Dark Mode";
-
-    [ObservableProperty]
     private string? _selectedFolderPath;
 
     [ObservableProperty]
@@ -163,10 +160,4 @@ public partial class WelcomeViewModel : ObservableObject
     {
     }
 
-    [RelayCommand]
-    private void ToggleTheme()
-    {
-        App.ToggleTheme();
-        ThemeToggleText = App.IsDarkTheme ? "Light Mode" : "Dark Mode";
-    }
 }

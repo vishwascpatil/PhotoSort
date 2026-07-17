@@ -23,14 +23,16 @@ public interface IPhotoRepository : IRepository<Photo>
     Task<IReadOnlyList<GalleryPhoto>> GetGalleryPageAsync(
         int skip,
         int take,
-        GallerySortMode sortMode);
+        GallerySortMode sortMode,
+        int? folderId = null);
 
     Task<IReadOnlyList<GalleryPhoto>> GetGalleryPageAfterIdAsync(
         int afterId,
         int take,
-        GallerySortMode sortMode);
+        GallerySortMode sortMode,
+        int? folderId = null);
 
-    Task<int> GetGalleryCountAsync();
+    Task<int> GetGalleryCountAsync(int? folderId = null);
 
     Task<int> GetMaxIdAsync();
 }

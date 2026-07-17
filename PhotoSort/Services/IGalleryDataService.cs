@@ -16,6 +16,8 @@ public interface IGalleryDataService : IDisposable
 
     GallerySortMode SortMode { get; set; }
 
+    int? CurrentFolderId { get; set; }
+
     Task InitializeAsync(CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<GalleryPhoto>> LoadInitialPageAsync(

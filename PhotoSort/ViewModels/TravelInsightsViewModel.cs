@@ -16,7 +16,7 @@ public partial class TravelInsightsViewModel : ObservableObject, IDisposable
     private bool _disposed;
 
     [ObservableProperty]
-    private bool _isLoading = true;
+    private bool _isLoading;
 
     [ObservableProperty]
     private string _statusMessage = "Loading travel insights...";

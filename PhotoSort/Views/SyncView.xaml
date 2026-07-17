@@ -3,23 +3,23 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:sys="clr-namespace:System;assembly=mscorlib"
              mc:Ignorable="d"
-             d:DesignHeight="600" d:DesignWidth="900"
+             d:DesignHeight="700" d:DesignWidth="900"
              Background="{DynamicResource WindowBackground}">
 
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!-- Header -->
+        <!-- ═══════════════ Header ═══════════════ -->
         <Border Grid.Row="0"
                 Background="{DynamicResource CardBackground}"
                 BorderBrush="{DynamicResource GalleryStatusBarBorder}"
                 BorderThickness="0,0,0,1"
-                Padding="20,12">
+                Padding="32,20">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
@@ -27,428 +27,421 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
-                <StackPanel Grid.Column="0"
-                            Orientation="Horizontal"
-                            VerticalAlignment="Center">
-                    <TextBlock Text="&#x1F504;"
-                               FontSize="20"
-                               VerticalAlignment="Center"
-                               Margin="0,0,10,0" />
-                    <TextBlock Text="Library Sync"
-                               FontSize="18"
-                               FontWeight="SemiBold"
-                               Foreground="{DynamicResource TitleTextBrush}"
-                               VerticalAlignment="Center" />
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border Width="44" Height="44"
+                            CornerRadius="22"
+                            Background="{DynamicResource PrimaryButtonBackground}"
+                            VerticalAlignment="Center" Margin="0,0,16,0">
+                        <TextBlock Text="&#x1F504;"
+                                   FontSize="22"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center" />
+                    </Border>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="Library Sync"
+                                   FontSize="20" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TitleTextBrush}" />
+                        <TextBlock Text="{Binding LastSyncDisplay, StringFormat='Last scan: {0}'}"
+                                   FontSize="12"
+                                   Foreground="{DynamicResource GalleryStatusText}"
+                                   Margin="0,2,0,0" />
+                    </StackPanel>
                 </StackPanel>
 
-                <StackPanel Grid.Column="2"
-                            Orientation="Horizontal"
-                            VerticalAlignment="Center">
-
-                    <!-- Start Watching -->
-                    <Button Command="{Binding StartWatchingCommand}"
-                            Style="{StaticResource PrimaryButton}"
-                            Padding="16,8"
-                            FontSize="13"
-                            Visibility="{Binding IsWatching, Converter={StaticResource InverseBoolToVisibilityConverter}}"
-                            Margin="0,0,8,0">
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border Background="{DynamicResource CardBackground}"
+                            CornerRadius="8"
+                            BorderBrush="{DynamicResource GalleryStatusBarBorder}"
+                            BorderThickness="1"
+                            Padding="12,8"
+                            Margin="0,0,12,0"
+                            Visibility="{Binding IsWatching, Converter={StaticResource BoolToVisibilityConverter}}">
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="&#x25B6;" FontSize="12" VerticalAlignment="Center" Margin="0,0,6,0" />
-                            <TextBlock Text="Start Watching" FontSize="13" VerticalAlignment="Center" />
+                            <Ellipse Width="8" Height="8"
+                                     Fill="#4CAF50"
+                                     VerticalAlignment="Center"
+                                     Margin="0,0,8,0" />
+                            <TextBlock Text="{Binding CurrentProgress.ActiveWatcherCount, StringFormat={}{0} watchers active}"
+                                       FontSize="12"
+                                       Foreground="{DynamicResource GalleryMetricText}"
+                                       VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Border>
+
+                    <Button Command="{Binding StartWatchingCommand}"
+                            Style="{StaticResource SecondaryButton}"
+                            Padding="16,8"
+                            FontSize="12"
+                            Visibility="{Binding IsWatching, Converter={StaticResource InverseBoolToVisibilityConverter}}"
+                            Margin="0,0,8,0"
+                            Cursor="Hand">
+                        <StackPanel Orientation="Horizontal">
+                            <Ellipse Width="8" Height="8"
+                                     Fill="#757575"
+                                     VerticalAlignment="Center"
+                                     Margin="0,0,8,0" />
+                            <TextBlock Text="Enable Watcher" />
                         </StackPanel>
                     </Button>
 
-                    <!-- Stop Watching -->
                     <Button Command="{Binding StopWatchingCommand}"
                             Style="{StaticResource SecondaryButton}"
                             Padding="16,8"
-                            FontSize="13"
+                            FontSize="12"
                             Visibility="{Binding IsWatching, Converter={StaticResource BoolToVisibilityConverter}}"
-                            Margin="0,0,8,0">
+                            Cursor="Hand">
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="&#x23F9;" FontSize="12" VerticalAlignment="Center" Margin="0,0,6,0" />
-                            <TextBlock Text="Stop Watching" FontSize="13" VerticalAlignment="Center" />
-                        </StackPanel>
-                    </Button>
-
-                    <!-- Sync Now -->
-                    <Button Command="{Binding SyncAllCommand}"
-                            Style="{StaticResource PrimaryButton}"
-                            Padding="16,8"
-                            FontSize="13"
-                            Visibility="{Binding IsSynchronizing, Converter={StaticResource InverseBoolToVisibilityConverter}}"
-                            Margin="0,0,8,0">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="&#x21BB;" FontSize="12" VerticalAlignment="Center" Margin="0,0,6,0" />
-                            <TextBlock Text="Sync Now" FontSize="13" VerticalAlignment="Center" />
-                        </StackPanel>
-                    </Button>
-
-                    <!-- Pause -->
-                    <Button Command="{Binding PauseSyncCommand}"
-                            Style="{StaticResource SecondaryButton}"
-                            Padding="16,8"
-                            FontSize="13"
-                            Visibility="{Binding IsSynchronizing, Converter={StaticResource BoolToVisibilityConverter}}"
-                            IsEnabled="{Binding IsPaused, Converter={StaticResource InverseBoolConverter}}"
-                            Margin="0,0,8,0">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="&#x23F8;" FontSize="12" VerticalAlignment="Center" Margin="0,0,6,0" />
-                            <TextBlock Text="Pause" FontSize="13" VerticalAlignment="Center" />
-                        </StackPanel>
-                    </Button>
-
-                    <!-- Resume -->
-                    <Button Command="{Binding ResumeSyncCommand}"
-                            Style="{StaticResource SecondaryButton}"
-                            Padding="16,8"
-                            FontSize="13"
-                            Visibility="{Binding IsPaused, Converter={StaticResource BoolToVisibilityConverter}}"
-                            Margin="0,0,8,0">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="&#x25B6;" FontSize="12" VerticalAlignment="Center" Margin="0,0,6,0" />
-                            <TextBlock Text="Resume" FontSize="13" VerticalAlignment="Center" />
-                        </StackPanel>
-                    </Button>
-
-                    <!-- Cancel -->
-                    <Button Command="{Binding CancelSyncCommand}"
-                            Style="{StaticResource SecondaryButton}"
-                            Padding="16,8"
-                            FontSize="13"
-                            Visibility="{Binding IsSynchronizing, Converter={StaticResource BoolToVisibilityConverter}}">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="&#x2715;" FontSize="12" VerticalAlignment="Center" Margin="0,0,6,0" />
-                            <TextBlock Text="Cancel" FontSize="13" VerticalAlignment="Center" />
+                            <Ellipse Width="8" Height="8"
+                                     Fill="#4CAF50"
+                                     VerticalAlignment="Center"
+                                     Margin="0,0,8,0" />
+                            <TextBlock Text="Watcher On" />
                         </StackPanel>
                     </Button>
                 </StackPanel>
             </Grid>
         </Border>
 
-        <!-- Content -->
-        <Grid Grid.Row="1">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="350" />
-            </Grid.ColumnDefinitions>
+        <!-- ═══════════════ Main Content ═══════════════ -->
+        <ScrollViewer Grid.Row="1"
+                       VerticalScrollBarVisibility="Auto"
+                       HorizontalScrollBarVisibility="Disabled">
+            <StackPanel Margin="32,24,32,32">
 
-            <!-- Left: Main Content -->
-            <Grid Grid.Column="0">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="*" />
-                </Grid.RowDefinitions>
+                <!-- ═══ Library Overview Stats ═══ -->
+                <Grid Margin="0,0,0,28">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
 
-                <!-- Stats Cards -->
-                <Border Grid.Row="0"
-                        Margin="16,16,16,0"
-                        Background="{DynamicResource CardBackground}"
-                        CornerRadius="12"
-                        Padding="20">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
+                    <Border Grid.Column="0"
+                            Style="{StaticResource CardBorder}"
+                            Margin="0,0,8,0"
+                            Padding="20,16">
+                        <StackPanel>
+                            <TextBlock Text="&#x1F4F7;" FontSize="24" Margin="0,0,0,8" />
+                            <TextBlock Text="{Binding CurrentProgress.TotalProcessed, Mode=OneWay}"
+                                       FontSize="28" FontWeight="Bold"
+                                       Foreground="{DynamicResource TitleTextBrush}" />
+                            <TextBlock Text="Total Photos"
+                                       FontSize="12"
+                                       Foreground="{DynamicResource GalleryStatusText}"
+                                       Margin="0,2,0,0" />
+                        </StackPanel>
+                    </Border>
 
-                        <StackPanel Grid.Column="0" HorizontalAlignment="Center">
-                            <TextBlock Text="&#x2795;" FontSize="20" HorizontalAlignment="Center" />
+                    <Border Grid.Column="1"
+                            Style="{StaticResource CardBorder}"
+                            Margin="8,0"
+                            Padding="20,16">
+                        <StackPanel>
+                            <TextBlock Text="&#x1F465;" FontSize="24" Margin="0,0,0,8" />
                             <TextBlock Text="{Binding FilesAddedCount}"
-                                       FontSize="22" FontWeight="Bold"
-                                       Foreground="{DynamicResource GalleryMetricText}"
-                                       HorizontalAlignment="Center" />
-                            <TextBlock Text="Added" FontSize="11"
+                                       FontSize="28" FontWeight="Bold"
+                                       Foreground="#4CAF50" />
+                            <TextBlock Text="New Photos"
+                                       FontSize="12"
                                        Foreground="{DynamicResource GalleryStatusText}"
-                                       HorizontalAlignment="Center" />
+                                       Margin="0,2,0,0" />
                         </StackPanel>
+                    </Border>
 
-                        <StackPanel Grid.Column="1" HorizontalAlignment="Center">
-                            <TextBlock Text="&#x2796;" FontSize="20" HorizontalAlignment="Center" />
-                            <TextBlock Text="{Binding FilesDeletedCount}"
-                                       FontSize="22" FontWeight="Bold"
-                                       Foreground="{DynamicResource GalleryFavoriteBrush}"
-                                       HorizontalAlignment="Center" />
-                            <TextBlock Text="Deleted" FontSize="11"
+                    <Border Grid.Column="2"
+                            Style="{StaticResource CardBorder}"
+                            Margin="8,0"
+                            Padding="20,16">
+                        <StackPanel>
+                            <TextBlock Text="&#x1F4C1;" FontSize="24" Margin="0,0,0,8" />
+                            <TextBlock Text="{Binding CurrentProgress.ActiveWatcherCount, Mode=OneWay}"
+                                       FontSize="28" FontWeight="Bold"
+                                       Foreground="{DynamicResource TitleTextBrush}" />
+                            <TextBlock Text="Watched Folders"
+                                       FontSize="12"
                                        Foreground="{DynamicResource GalleryStatusText}"
-                                       HorizontalAlignment="Center" />
+                                       Margin="0,2,0,0" />
                         </StackPanel>
+                    </Border>
 
-                        <StackPanel Grid.Column="2" HorizontalAlignment="Center">
-                            <TextBlock Text="&#x2793;" FontSize="20" HorizontalAlignment="Center" />
-                            <TextBlock Text="{Binding FilesModifiedCount}"
-                                       FontSize="22" FontWeight="Bold"
-                                       Foreground="{DynamicResource GalleryMetricText}"
-                                       HorizontalAlignment="Center" />
-                            <TextBlock Text="Modified" FontSize="11"
+                    <Border Grid.Column="3"
+                            Style="{StaticResource CardBorder}"
+                            Margin="8,0,0,0"
+                            Padding="20,16">
+                        <StackPanel>
+                            <TextBlock Text="&#x23F1;" FontSize="24" Margin="0,0,0,8" />
+                            <TextBlock Text="{Binding ElapsedDisplay, Mode=OneWay, TargetNullValue='--'}"
+                                       FontSize="28" FontWeight="Bold"
+                                       Foreground="{DynamicResource TitleTextBrush}" />
+                            <TextBlock Text="Last Sync"
+                                       FontSize="12"
                                        Foreground="{DynamicResource GalleryStatusText}"
-                                       HorizontalAlignment="Center" />
+                                       Margin="0,2,0,0" />
                         </StackPanel>
+                    </Border>
+                </Grid>
 
-                        <StackPanel Grid.Column="3" HorizontalAlignment="Center">
-                            <TextBlock Text="&#x21C4;" FontSize="20" HorizontalAlignment="Center" />
-                            <TextBlock Text="{Binding FilesRenamedCount}"
-                                       FontSize="22" FontWeight="Bold"
-                                       Foreground="{DynamicResource GalleryMetricText}"
-                                       HorizontalAlignment="Center" />
-                            <TextBlock Text="Renamed" FontSize="11"
-                                       Foreground="{DynamicResource GalleryStatusText}"
-                                       HorizontalAlignment="Center" />
-                        </StackPanel>
-
-                        <StackPanel Grid.Column="4" HorizontalAlignment="Center">
-                            <TextBlock Text="&#x1F4C2;" FontSize="20" HorizontalAlignment="Center" />
-                            <TextBlock Text="{Binding CurrentProgress.QueueLength}"
-                                       FontSize="22" FontWeight="Bold"
-                                       Foreground="{DynamicResource GalleryMetricText}"
-                                       HorizontalAlignment="Center" />
-                            <TextBlock Text="Queued" FontSize="11"
-                                       Foreground="{DynamicResource GalleryStatusText}"
-                                       HorizontalAlignment="Center" />
-                        </StackPanel>
-                    </Grid>
-                </Border>
-
-                <!-- Event Log -->
-                <Border Grid.Row="1"
-                        Margin="16,16,16,16"
-                        Background="{DynamicResource CardBackground}"
-                        CornerRadius="12"
-                        Padding="16">
-                    <Grid>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="*" />
-                        </Grid.RowDefinitions>
-
-                        <TextBlock Grid.Row="0"
-                                   Text="Recent Events"
-                                   FontSize="14"
-                                   FontWeight="SemiBold"
+                <!-- ═══ Idle State: Hero CTA ═══ -->
+                <Border Style="{StaticResource CardBorder}"
+                        Padding="48,40"
+                        Margin="0,0,0,20"
+                        Visibility="{Binding IsSynchronizing, Converter={StaticResource InverseBoolToVisibilityConverter}}">
+                    <StackPanel HorizontalAlignment="Center">
+                        <Border Width="80" Height="80"
+                                CornerRadius="40"
+                                Background="{DynamicResource PrimaryButtonBackground}"
+                                HorizontalAlignment="Center"
+                                Margin="0,0,0,20"
+                                Opacity="0.15">
+                            <TextBlock Text="&#x1F504;"
+                                       FontSize="40"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center" />
+                        </Border>
+                        <TextBlock Text="Keep Your Library in Sync"
+                                   FontSize="22" FontWeight="SemiBold"
                                    Foreground="{DynamicResource TitleTextBrush}"
-                                   Margin="0,0,0,12" />
-
-                        <ScrollViewer Grid.Row="1"
-                                      VerticalScrollBarVisibility="Auto">
-                            <ItemsControl ItemsSource="{Binding RecentEvents}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate DataType="{x:Type sys:String}"
-                                                  xmlns:sys="clr-namespace:System;assembly=mscorlib">
-                                        <Border Margin="0,2"
-                                                Padding="8,6"
-                                                Background="{DynamicResource GallerySkeletonBrush}"
-                                                CornerRadius="4">
-                                            <TextBlock Text="{Binding}"
-                                                       FontSize="11"
-                                                       Foreground="{DynamicResource GalleryStatusText}"
-                                                       FontFamily="Consolas" />
-                                        </Border>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </ScrollViewer>
-
-                        <!-- Empty State -->
-                        <TextBlock Grid.Row="1"
-                                   Text="No events yet. Start watching to see file changes."
-                                   FontSize="13"
+                                   HorizontalAlignment="Center" />
+                        <TextBlock Text="Scan your folders for new, modified, or removed photos and keep your library up to date."
+                                   FontSize="14"
                                    Foreground="{DynamicResource GalleryStatusText}"
                                    HorizontalAlignment="Center"
-                                   VerticalAlignment="Center"
-                                   Visibility="{Binding RecentEvents.Count, Converter={StaticResource ZeroToVisibleConverter}}" />
-                    </Grid>
+                                   Margin="0,8,0,24"
+                                   MaxWidth="500"
+                                   TextWrapping="Wrap"
+                                   TextAlignment="Center" />
+
+                        <Button Command="{Binding SyncAllCommand}"
+                                Style="{StaticResource PrimaryButton}"
+                                Padding="40,14"
+                                FontSize="15"
+                                HorizontalAlignment="Center"
+                                Effect="{StaticResource CardHoverShadow}"
+                                Cursor="Hand">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#x1F50D;" FontSize="16" Margin="0,0,10,0" VerticalAlignment="Center" />
+                                <TextBlock Text="Scan Library for Changes" FontSize="15" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
                 </Border>
-            </Grid>
 
-            <!-- Right: Status Panel -->
-            <Border Grid.Column="1"
-                    Background="{DynamicResource CardBackground}"
-                    BorderBrush="{DynamicResource GalleryStatusBarBorder}"
-                    BorderThickness="1,0,0,0">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" />
-                    </Grid.RowDefinitions>
-
-                    <!-- Status Header -->
-                    <Border Grid.Row="0"
-                            Padding="16,12"
-                            BorderBrush="{DynamicResource GalleryStatusBarBorder}"
-                            BorderThickness="0,0,0,1">
-                        <StackPanel>
-                            <TextBlock Text="Sync Status"
-                                       FontSize="14"
-                                       FontWeight="SemiBold"
-                                       Foreground="{DynamicResource TitleTextBrush}" />
-                            <TextBlock Text="{Binding StatusMessage}"
-                                       FontSize="12"
-                                       Foreground="{DynamicResource GalleryStatusText}"
-                                       Margin="0,4,0,0"
-                                       TextTrimming="CharacterEllipsis" />
-                        </StackPanel>
-                    </Border>
-
-                    <!-- Progress Overlay -->
-                    <Border Grid.Row="1"
-                            Padding="16,12"
-                            Visibility="{Binding IsSynchronizing, Converter={StaticResource BoolToVisibilityConverter}}">
-                        <StackPanel>
+                <!-- ═══ Sync Progress ═══ -->
+                <Border Style="{StaticResource CardBorder}"
+                        Padding="32,28"
+                        Margin="0,0,0,20"
+                        Visibility="{Binding IsSynchronizing, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                            <Border Width="14" Height="14" CornerRadius="7"
+                                    Background="#4FC3F7"
+                                    VerticalAlignment="Center"
+                                    Margin="0,0,10,0">
+                                <Border.Triggers>
+                                    <EventTrigger RoutedEvent="Border.Loaded">
+                                        <BeginStoryboard>
+                                            <Storyboard RepeatBehavior="Forever">
+                                                <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                                 From="1" To="0.3"
+                                                                 Duration="0:0:1"
+                                                                 AutoReverse="True" />
+                                            </Storyboard>
+                                        </BeginStoryboard>
+                                    </EventTrigger>
+                                </Border.Triggers>
+                            </Border>
                             <TextBlock Text="{Binding CurrentProgress.PhaseDisplay}"
-                                       FontSize="12"
-                                       FontWeight="SemiBold"
+                                       FontSize="18" FontWeight="SemiBold"
                                        Foreground="{DynamicResource TitleTextBrush}"
-                                       Margin="0,0,0,8" />
-
-                            <Border Background="{DynamicResource GallerySkeletonBrush}"
-                                    CornerRadius="4"
-                                    Height="8">
-                                <Border Background="{DynamicResource PrimaryButtonBackground}"
-                                        CornerRadius="4"
-                                        HorizontalAlignment="Left"
-                                        Width="{Binding CurrentProgress.ProgressPercent, Mode=OneWay}" />
-                            </Border>
+                                       VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding CurrentProgress.CurrentOperation}"
+                                       FontSize="13"
+                                       Foreground="{DynamicResource GalleryStatusText}"
+                                       VerticalAlignment="Center"
+                                       Margin="12,0,0,0" />
                         </StackPanel>
-                    </Border>
 
-                    <!-- Watcher Info -->
-                    <StackPanel Grid.Row="2"
-                                Margin="16,12"
-                                Visibility="{Binding IsWatching, Converter={StaticResource BoolToVisibilityConverter}}">
-                        <TextBlock Text="Active Watchers"
-                                   FontSize="12"
-                                   FontWeight="SemiBold"
-                                   Foreground="{DynamicResource TitleTextBrush}"
-                                   Margin="0,0,0,4" />
+                        <Border Background="{DynamicResource GallerySkeletonBrush}"
+                                CornerRadius="6"
+                                Height="10"
+                                Margin="0,0,0,20">
+                            <Border Background="{StaticResource PrimaryButtonBackground}"
+                                    CornerRadius="6"
+                                    HorizontalAlignment="Left"
+                                    Width="{Binding CurrentProgress.ProgressPercent, Mode=OneWay}"
+                                    Height="10" />
+                        </Border>
 
-                        <StackPanel Orientation="Horizontal"
-                                    Margin="0,0,0,8">
-                            <Border Background="{DynamicResource GalleryFavoriteBrush}"
-                                    CornerRadius="4"
-                                    Padding="8,4"
-                                    VerticalAlignment="Center">
-                                <TextBlock Text="{Binding CurrentProgress.ActiveWatcherCount}"
-                                           FontSize="12"
-                                           FontWeight="Bold"
-                                           Foreground="White" />
-                            </Border>
-                            <TextBlock Text=" folders monitored"
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0" Orientation="Horizontal">
+                                <TextBlock Text="Added: "
+                                           FontSize="13"
+                                           Foreground="{DynamicResource GalleryStatusText}" />
+                                <TextBlock Text="{Binding FilesAddedCount}"
+                                           FontSize="13" FontWeight="Bold"
+                                           Foreground="#4CAF50" />
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                <TextBlock Text="Modified: "
+                                           FontSize="13"
+                                           Foreground="{DynamicResource GalleryStatusText}" />
+                                <TextBlock Text="{Binding FilesModifiedCount}"
+                                           FontSize="13" FontWeight="Bold"
+                                           Foreground="{DynamicResource GalleryMetricText}" />
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="2" Orientation="Horizontal">
+                                <TextBlock Text="Deleted: "
+                                           FontSize="13"
+                                           Foreground="{DynamicResource GalleryStatusText}" />
+                                <TextBlock Text="{Binding FilesDeletedCount}"
+                                           FontSize="13" FontWeight="Bold"
+                                           Foreground="#EF5350" />
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="3" Orientation="Horizontal" Margin="16,0,0,0">
+                                <Button Command="{Binding PauseSyncCommand}"
+                                        Style="{StaticResource SecondaryButton}"
+                                        Padding="16,6"
+                                        FontSize="12"
+                                        Visibility="{Binding IsPaused, Converter={StaticResource InverseBoolToVisibilityConverter}}"
+                                        Margin="0,0,8,0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="&#x23F8;" FontSize="11" Margin="0,0,6,0" />
+                                        <TextBlock Text="Pause" />
+                                    </StackPanel>
+                                </Button>
+                                <Button Command="{Binding ResumeSyncCommand}"
+                                        Style="{StaticResource PrimaryButton}"
+                                        Padding="16,6"
+                                        FontSize="12"
+                                        Visibility="{Binding IsPaused, Converter={StaticResource BoolToVisibilityConverter}}"
+                                        Margin="0,0,8,0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="&#x25B6;" FontSize="11" Margin="0,0,6,0" />
+                                        <TextBlock Text="Resume" />
+                                    </StackPanel>
+                                </Button>
+                                <Button Command="{Binding CancelSyncCommand}"
+                                        Style="{StaticResource SecondaryButton}"
+                                        Padding="16,6"
+                                        FontSize="12">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="&#x2715;" FontSize="11" Margin="0,0,6,0" />
+                                        <TextBlock Text="Cancel" />
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- ═══ Recent Activity ═══ -->
+                <Border Style="{StaticResource CardBorder}"
+                        Padding="24,20"
+                        Margin="0,0,0,20">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                            <TextBlock Text="&#x1F4CB;" FontSize="18" Margin="0,0,10,0" VerticalAlignment="Center" />
+                            <TextBlock Text="Recent Activity"
+                                       FontSize="16" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TitleTextBrush}"
+                                       VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding RecentEvents.Count, StringFormat='({0} entries)'}"
                                        FontSize="12"
                                        Foreground="{DynamicResource GalleryStatusText}"
                                        VerticalAlignment="Center"
                                        Margin="8,0,0,0" />
                         </StackPanel>
 
-                        <StackPanel Orientation="Horizontal"
-                                    Margin="0,0,0,4">
-                            <TextBlock Text="Last sync: "
-                                       FontSize="11"
-                                       Foreground="{DynamicResource GalleryStatusText}" />
-                            <TextBlock Text="{Binding LastSyncDisplay}"
-                                       FontSize="11"
-                                       FontWeight="SemiBold"
-                                       Foreground="{DynamicResource GalleryMetricText}" />
-                        </StackPanel>
+                        <ItemsControl ItemsSource="{Binding RecentEvents}"
+                                      MaxHeight="280"
+                                      Visibility="{Binding RecentEvents.Count, Converter={StaticResource NonZeroToVisibleConverter}}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type sys:String}">
+                                    <Border Margin="0,3"
+                                            Padding="12,8"
+                                            Background="{DynamicResource GalleryPlaceholderBackground}"
+                                            CornerRadius="6">
+                                        <TextBlock Text="{Binding}"
+                                                   FontSize="12"
+                                                   FontFamily="Consolas"
+                                                   Foreground="{DynamicResource GalleryStatusText}" />
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
 
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="Health: "
-                                       FontSize="11"
-                                       Foreground="{DynamicResource GalleryStatusText}" />
-                            <TextBlock FontSize="11"
-                                       FontWeight="SemiBold">
-                                <TextBlock.Style>
-                                    <Style TargetType="TextBlock">
-                                        <Setter Property="Text" Value="Healthy" />
-                                        <Setter Property="Foreground" Value="{DynamicResource GalleryMetricText}" />
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding CurrentProgress.IsWatcherHealthy}" Value="False">
-                                                <Setter Property="Text" Value="Overflow Detected" />
-                                                <Setter Property="Foreground" Value="{DynamicResource GalleryFavoriteBrush}" />
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </TextBlock.Style>
-                            </TextBlock>
-                        </StackPanel>
+                        <Border Margin="0,3"
+                                Padding="12,28"
+                                CornerRadius="6"
+                                Visibility="{Binding RecentEvents.Count, Converter={StaticResource ZeroToVisibleConverter}}">
+                            <StackPanel HorizontalAlignment="Center">
+                                <TextBlock Text="&#x1F4AD;"
+                                           FontSize="32"
+                                           HorizontalAlignment="Center"
+                                           Margin="0,0,0,8"
+                                           Opacity="0.4" />
+                                <TextBlock Text="No recent activity"
+                                           FontSize="13"
+                                           Foreground="{DynamicResource GalleryStatusText}"
+                                           HorizontalAlignment="Center" />
+                                <TextBlock Text="Click 'Scan Library' above to start scanning for changes."
+                                           FontSize="12"
+                                           Foreground="{DynamicResource GalleryStatusText}"
+                                           HorizontalAlignment="Center"
+                                           Margin="0,4,0,0"
+                                           Opacity="0.7" />
+                            </StackPanel>
+                        </Border>
                     </StackPanel>
+                </Border>
 
-                    <!-- Watched Folders -->
-                    <ScrollViewer Grid.Row="3"
-                                  VerticalScrollBarVisibility="Auto"
-                                  Margin="16,0,16,16">
-                        <StackPanel>
+                <!-- ═══ Watched Folders ═══ -->
+                <Border Style="{StaticResource CardBorder}"
+                        Padding="24,20"
+                        Margin="0,0,0,20"
+                        Visibility="{Binding IsWatching, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                            <TextBlock Text="&#x1F4C2;" FontSize="18" Margin="0,0,10,0" VerticalAlignment="Center" />
                             <TextBlock Text="Watched Folders"
-                                       FontSize="12"
-                                       FontWeight="SemiBold"
+                                       FontSize="16" FontWeight="SemiBold"
                                        Foreground="{DynamicResource TitleTextBrush}"
-                                       Margin="0,0,0,8"
-                                       Visibility="{Binding IsWatching, Converter={StaticResource BoolToVisibilityConverter}}" />
+                                       VerticalAlignment="Center" />
+                        </StackPanel>
 
-                            <ItemsControl ItemsSource="{Binding WatchedFolders}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate DataType="{x:Type sys:String}"
-                                                  xmlns:sys="clr-namespace:System;assembly=mscorlib">
-                                        <Border Margin="0,2"
-                                                Padding="8,6"
-                                                Background="{DynamicResource GallerySkeletonBrush}"
-                                                CornerRadius="4">
+                        <ItemsControl ItemsSource="{Binding WatchedFolders}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type sys:String}">
+                                    <Border Margin="0,2"
+                                            Padding="12,8"
+                                            Background="{DynamicResource GalleryPlaceholderBackground}"
+                                            CornerRadius="6">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="&#x1F4C1;" FontSize="12" Margin="0,0,8,0" VerticalAlignment="Center" />
                                             <TextBlock Text="{Binding}"
-                                                       FontSize="11"
+                                                       FontSize="12"
                                                        Foreground="{DynamicResource GalleryStatusText}"
                                                        TextTrimming="CharacterEllipsis" />
-                                        </Border>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </StackPanel>
-                    </ScrollViewer>
-                </Grid>
-            </Border>
-        </Grid>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
 
-        <!-- Status Bar -->
-        <Border Grid.Row="2"
-                Background="{DynamicResource GalleryStatusBarBackground}"
-                BorderBrush="{DynamicResource GalleryStatusBarBorder}"
-                BorderThickness="0,1,0,0"
-                Padding="20,8">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-
-                <TextBlock Grid.Column="0"
-                           Text="{Binding CurrentProgress.ActiveWatcherCount, Mode=OneWay, StringFormat='Watchers: {0}'}"
-                           FontSize="12" Foreground="{DynamicResource GalleryStatusText}"
-                           FontWeight="SemiBold" VerticalAlignment="Center" />
-
-                <TextBlock Grid.Column="1"
-                           Text="{Binding CurrentProgress.QueueLength, Mode=OneWay, StringFormat='Queue: {0}'}"
-                           FontSize="12" Foreground="{DynamicResource GalleryStatusText}"
-                           FontWeight="SemiBold" VerticalAlignment="Center" Margin="24,0,0,0" />
-
-                <TextBlock Grid.Column="2"
-                           Text="{Binding CurrentProgress.TotalProcessed, Mode=OneWay, StringFormat='Processed: {0}'}"
-                           FontSize="12" Foreground="{DynamicResource GalleryStatusText}"
-                           FontWeight="SemiBold" VerticalAlignment="Center" Margin="24,0,0,0" />
-
-                <TextBlock Grid.Column="4"
-                           Text="{Binding StatusMessage}"
-                           FontSize="12"
-                           Foreground="{DynamicResource GalleryStatusText}"
-                           TextTrimming="CharacterEllipsis"
-                           MaxWidth="300"
-                           VerticalAlignment="Center" />
-            </Grid>
-        </Border>
+            </StackPanel>
+        </ScrollViewer>
     </Grid>
 </UserControl>

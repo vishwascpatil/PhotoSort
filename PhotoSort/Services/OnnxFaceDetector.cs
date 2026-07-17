@@ -46,10 +46,10 @@ public sealed class OnnxFaceDetector : IOnnxFaceDetector
 
         if (!File.Exists(modelPath))
         {
-            _logger.LogWarning("Detection model not found at {Path}. Will use fallback detection.", modelPath);
-            _modelVersion = "fallback-1.0";
-            _isInitialized = true;
-            return;
+            _logger.LogError("Detection model not found at {Path}. Download may have failed.", modelPath);
+            throw new InvalidOperationException(
+                $"Face detection model not found at '{modelPath}'. " +
+                "Ensure the model file is present or check network connectivity for automatic download.");
         }
 
         try
@@ -70,8 +70,7 @@ public sealed class OnnxFaceDetector : IOnnxFaceDetector
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to initialize ONNX face detector from {Path}", modelPath);
-            _modelVersion = "fallback-1.0";
-            _isInitialized = true;
+            throw;
         }
     }
 
@@ -83,7 +82,7 @@ public sealed class OnnxFaceDetector : IOnnxFaceDetector
             throw new InvalidOperationException("Detector not initialized");
 
         if (_sessionPool.IsEmpty)
-            return await DetectWithFallbackAsync(imageData, cancellationToken);
+            return [];
 
         return await Task.Run(() => DetectWithOnnx(imageData, cancellationToken), cancellationToken);
     }
@@ -129,9 +128,10 @@ public sealed class OnnxFaceDetector : IOnnxFaceDetector
             var session = GetSession();
             try
             {
+                var inputName = session.InputMetadata.Keys.First();
                 var inputs = new List<NamedOnnxValue>
                 {
-                    NamedOnnxValue.CreateFromTensor("input", inputTensor)
+                    NamedOnnxValue.CreateFromTensor(inputName, inputTensor)
                 };
 
                 using var results = session.Run(inputs);
@@ -149,8 +149,8 @@ public sealed class OnnxFaceDetector : IOnnxFaceDetector
         }
         catch (Exception ex)
         {
-            _logger.LogDebug(ex, "ONNX detection failed, using fallback");
-            return DetectWithFallback(imageData);
+            _logger.LogError(ex, "ONNX detection failed");
+            throw;
         }
     }
 
@@ -171,9 +171,10 @@ public sealed class OnnxFaceDetector : IOnnxFaceDetector
             var session = GetSession();
             try
             {
+                var inputName = session.InputMetadata.Keys.First();
                 var inputs = new List<NamedOnnxValue>
                 {
-                    NamedOnnxValue.CreateFromTensor("input", tensor)
+                    NamedOnnxValue.CreateFromTensor(inputName, tensor)
                 };
 
                 using var results = session.Run(inputs);
@@ -193,8 +194,8 @@ public sealed class OnnxFaceDetector : IOnnxFaceDetector
         }
         catch (Exception ex)
         {
-            _logger.LogDebug(ex, "ONNX detection from pixels failed");
-            return [];
+            _logger.LogError(ex, "ONNX detection from pixels failed");
+            throw;
         }
     }
 
@@ -233,13 +234,12 @@ public sealed class OnnxFaceDetector : IOnnxFaceDetector
                 for (int x = 0; x < width; x++)
                 {
                     var offset = y * stride + x * 3;
-                    var b = buffer[offset] / 255.0f;
-                    var g = buffer[offset + 1] / 255.0f;
-                    var r = buffer[offset + 2] / 255.0f;
-
-                    tensor[0, 0, y, x] = (r - 0.485f) / 0.229f;
-                    tensor[0, 1, y, x] = (g - 0.456f) / 0.224f;
-                    tensor[0, 2, y, x] = (b - 0.406f) / 0.225f;
+                    var b = buffer[offset];
+                    var g = buffer[offset + 1];
+                    var r = buffer[offset + 2];
+                    tensor[0, 0, y, x] = (r - 127.5f) / 128.0f;
+                    tensor[0, 1, y, x] = (g - 127.5f) / 128.0f;
+                    tensor[0, 2, y, x] = (b - 127.5f) / 128.0f;
                 }
             }
         }
@@ -256,66 +256,257 @@ public sealed class OnnxFaceDetector : IOnnxFaceDetector
         float scaleX, float scaleY,
         int originalWidth, int originalHeight)
     {
-        var faces = new List<DetectedFace>();
-        var confidenceThreshold = _modelProvider.GetDetectionConfidenceThreshold();
-
         try
         {
             if (results.Count == 0)
-                return faces;
+                return [];
 
-            var output = results[0].AsTensor<float>().ToArray();
+            var resultsList = results.ToList();
+            var allFaces = new List<DetectedFace>();
+            var confidenceThreshold = _modelProvider.GetDetectionConfidenceThreshold();
 
-            if (output.Length >= 5)
+            // Try SCRFD flat format: 9 outputs (3 score + 3 bbox + 3 kps at strides 8/16/32)
+            if (resultsList.Count == 9)
             {
-                int valuesPerDetection = 5;
-                int numDetections = output.Length / valuesPerDetection;
+                // Map each output by its first dimension (total anchors for that stride)
+                var strides = new[] { 8, 16, 32 };
+                int[] expectedCounts = [12800, 3200, 800]; // 2 anchors * grid_H * grid_W per stride
 
-                for (int i = 0; i < numDetections; i++)
+                for (int si = 0; si < strides.Length; si++)
                 {
-                    var baseIdx = i * valuesPerDetection;
-                    if (baseIdx + 4 >= output.Length) break;
+                    int stride = strides[si];
+                    int expectedN = expectedCounts[si];
+                    int gridSize = 640 / stride;
 
-                    var score = output[baseIdx + 4];
-                    if (score < confidenceThreshold) continue;
-
-                    var x1 = output[baseIdx] * scaleX;
-                    var y1 = output[baseIdx + 1] * scaleY;
-                    var x2 = output[baseIdx + 2] * scaleX;
-                    var y2 = output[baseIdx + 3] * scaleY;
-
-                    var boxWidth = x2 - x1;
-                    var boxHeight = y2 - y1;
-
-                    if (boxWidth <= 0 || boxHeight <= 0) continue;
-
-                    double[]? landmarks = null;
-                    if (valuesPerDetection > 5)
+                    // Find score, bbox, kps outputs matching this stride's anchor count
+                    var scoreOutput = resultsList.FirstOrDefault(r =>
                     {
-                        landmarks = new double[10];
-                        for (int j = 0; j < 10 && (baseIdx + 5 + j) < output.Length; j++)
+                        var dims = r.AsTensor<float>().Dimensions;
+                        return dims.Length == 2 && (int)dims[0] == expectedN && (int)dims[1] == 1;
+                    });
+                    var bboxOutput = resultsList.FirstOrDefault(r =>
+                    {
+                        var dims = r.AsTensor<float>().Dimensions;
+                        return dims.Length == 2 && (int)dims[0] == expectedN && (int)dims[1] == 4;
+                    });
+                    var kpsOutput = resultsList.FirstOrDefault(r =>
+                    {
+                        var dims = r.AsTensor<float>().Dimensions;
+                        return dims.Length == 2 && (int)dims[0] == expectedN && (int)dims[1] == 10;
+                    });
+
+                    if (scoreOutput == null || bboxOutput == null)
+                        continue;
+
+                    var scores = scoreOutput.AsTensor<float>();
+                    var bboxes = bboxOutput.AsTensor<float>();
+                    var kpsTensor = kpsOutput?.AsTensor<float>();
+
+                    int numAnchorsPerCell = 2;
+                    int totalCells = gridSize * gridSize;
+
+                    // Debug: count high scores
+                    int totalAnchors = totalCells * numAnchorsPerCell;
+                    int highScores = 0;
+                    for (int i = 0; i < totalAnchors; i++)
+                        if (scores[i, 0] >= confidenceThreshold) highScores++;
+                    for (int cellIdx = 0; cellIdx < totalCells; cellIdx++)
+                    {
+                        int row = cellIdx / gridSize;
+                        int col = cellIdx % gridSize;
+                        float cx = (col + 0.5f) * stride;
+                        float cy = (row + 0.5f) * stride;
+
+                        for (int a = 0; a < numAnchorsPerCell; a++)
                         {
-                            landmarks[j] = output[baseIdx + 5 + j] * (j % 2 == 0 ? scaleX : scaleY);
+                            int anchorIdx = cellIdx * numAnchorsPerCell + a;
+
+                            float score = scores[anchorIdx, 0];
+
+                            if (score < confidenceThreshold)
+                                continue;
+
+                            float l = bboxes[anchorIdx, 0];
+                            float t = bboxes[anchorIdx, 1];
+                            float r = bboxes[anchorIdx, 2];
+                            float b = bboxes[anchorIdx, 3];
+
+                            float x1 = (cx - l * stride) * scaleX;
+                            float y1 = (cy - t * stride) * scaleY;
+                            float x2 = (cx + r * stride) * scaleX;
+                            float y2 = (cy + b * stride) * scaleY;
+
+                            float boxWidth = x2 - x1;
+                            float boxHeight = y2 - y1;
+
+                            if (boxWidth <= 0 || boxHeight <= 0)
+                                continue;
+
+                            double[]? landmarks = null;
+                            if (kpsTensor != null)
+                            {
+                                landmarks = new double[10];
+                                for (int j = 0; j < 10; j++)
+                                {
+                                    float kp = kpsTensor[anchorIdx, j];
+                                    landmarks[j] = (j % 2 == 0)
+                                        ? (cx + kp * stride) * scaleX
+                                        : (cy + kp * stride) * scaleY;
+                                }
+                            }
+
+                            allFaces.Add(new DetectedFace
+                            {
+                                BoundingBoxX = Math.Max(0, x1) / originalWidth,
+                                BoundingBoxY = Math.Max(0, y1) / originalHeight,
+                                BoundingBoxWidth = Math.Min(boxWidth, originalWidth - x1) / originalWidth,
+                                BoundingBoxHeight = Math.Min(boxHeight, originalHeight - y1) / originalHeight,
+                                Confidence = score,
+                                FaceSize = Math.Max(boxWidth, boxHeight),
+                                Landmarks = landmarks,
+                                ModelVersion = _modelVersion
+                            });
                         }
                     }
-
-                    faces.Add(new DetectedFace
-                    {
-                        BoundingBoxX = Math.Max(0, x1) / originalWidth,
-                        BoundingBoxY = Math.Max(0, y1) / originalHeight,
-                        BoundingBoxWidth = Math.Min(boxWidth, originalWidth - x1) / originalWidth,
-                        BoundingBoxHeight = Math.Min(boxHeight, originalHeight - y1) / originalHeight,
-                        Confidence = score,
-                        Landmarks = landmarks,
-                        FaceSize = Math.Max(boxWidth, boxHeight),
-                        ModelVersion = _modelVersion
-                    });
                 }
+
+                return ApplyNms(allFaces, _modelProvider.GetNmsIouThreshold());
             }
+
+            // Named multi-output format (YOLOv8-face: cls/obj/bbox/kps at strides 8/16/32)
+            if (resultsList.Count >= 8)
+            {
+                var outputs = results.ToDictionary(r => r.Name, r => r.AsTensor<float>().ToArray());
+
+                var strides = new[] { 8, 16, 32 };
+                foreach (var stride in strides)
+                {
+                    if (!outputs.TryGetValue($"cls_{stride}", out var cls) ||
+                        !outputs.TryGetValue($"obj_{stride}", out var obj) ||
+                        !outputs.TryGetValue($"bbox_{stride}", out var bbox))
+                        continue;
+
+                    int gridSize = 640 / stride;
+                    int numAnchors = gridSize * gridSize;
+
+                    if (cls.Length < numAnchors || obj.Length < numAnchors || bbox.Length < numAnchors * 4)
+                        continue;
+
+                    bool sigmoidBaked = cls.Any(v => v > 1.0f || v < 0.0f);
+
+                    for (int i = 0; i < numAnchors; i++)
+                    {
+                        float clsScore = cls[i];
+                        if (!sigmoidBaked)
+                            clsScore = 1f / (1f + MathF.Exp(-clsScore));
+
+                        float objScore = obj[i];
+                        if (!sigmoidBaked)
+                            objScore = 1f / (1f + MathF.Exp(-objScore));
+
+                        float score = clsScore * objScore;
+
+                        if (score < confidenceThreshold)
+                            continue;
+
+                        int gy = i / gridSize;
+                        int gx = i % gridSize;
+
+                        float anchorX = (gx + 0.5f) * stride;
+                        float anchorY = (gy + 0.5f) * stride;
+
+                        int bIdx = i * 4;
+                        float x1 = (anchorX - bbox[bIdx] * stride) * scaleX;
+                        float y1 = (anchorY - bbox[bIdx + 1] * stride) * scaleY;
+                        float x2 = (anchorX + bbox[bIdx + 2] * stride) * scaleX;
+                        float y2 = (anchorY + bbox[bIdx + 3] * stride) * scaleY;
+
+                        float boxWidth = x2 - x1;
+                        float boxHeight = y2 - y1;
+
+                        if (boxWidth <= 0 || boxHeight <= 0)
+                            continue;
+
+                        allFaces.Add(new DetectedFace
+                        {
+                            BoundingBoxX = Math.Max(0, x1) / originalWidth,
+                            BoundingBoxY = Math.Max(0, y1) / originalHeight,
+                            BoundingBoxWidth = Math.Min(boxWidth, originalWidth - x1) / originalWidth,
+                            BoundingBoxHeight = Math.Min(boxHeight, originalHeight - y1) / originalHeight,
+                            Confidence = score,
+                            FaceSize = Math.Max(boxWidth, boxHeight),
+                            ModelVersion = _modelVersion
+                        });
+                    }
+                }
+
+                return ApplyNms(allFaces, _modelProvider.GetNmsIouThreshold());
+            }
+
+            // Fallback for older model formats (single flat output)
+            var output = results[0].AsTensor<float>().ToArray();
+            return PostProcessFlatFormat(output, scaleX, scaleY, originalWidth, originalHeight);
         }
         catch (Exception ex)
         {
             _logger.LogDebug(ex, "Failed to post-process ONNX detection results");
+            return [];
+        }
+    }
+
+    private List<DetectedFace> PostProcessFlatFormat(
+        float[] output,
+        float scaleX, float scaleY,
+        int originalWidth, int originalHeight)
+    {
+        var faces = new List<DetectedFace>();
+        var confidenceThreshold = _modelProvider.GetDetectionConfidenceThreshold();
+
+        if (output.Length < 5)
+            return faces;
+
+        int valuesPerDetection = 5;
+        int numDetections = output.Length / valuesPerDetection;
+
+        for (int i = 0; i < numDetections; i++)
+        {
+            int baseIdx = i * valuesPerDetection;
+            if (baseIdx + 4 >= output.Length) break;
+
+            float score = output[baseIdx + 4];
+            if (score < confidenceThreshold) continue;
+
+            float x1 = output[baseIdx] * scaleX;
+            float y1 = output[baseIdx + 1] * scaleY;
+            float x2 = output[baseIdx + 2] * scaleX;
+            float y2 = output[baseIdx + 3] * scaleY;
+
+            float boxWidth = x2 - x1;
+            float boxHeight = y2 - y1;
+
+            if (boxWidth <= 0 || boxHeight <= 0) continue;
+
+            double[]? landmarks = null;
+            if (valuesPerDetection > 5)
+            {
+                landmarks = new double[10];
+                for (int j = 0; j < 10 && (baseIdx + 5 + j) < output.Length; j++)
+                {
+                    landmarks[j] = output[baseIdx + 5 + j] * (j % 2 == 0 ? scaleX : scaleY);
+                }
+            }
+
+            faces.Add(new DetectedFace
+            {
+                BoundingBoxX = Math.Max(0, x1) / originalWidth,
+                BoundingBoxY = Math.Max(0, y1) / originalHeight,
+                BoundingBoxWidth = Math.Min(boxWidth, originalWidth - x1) / originalWidth,
+                BoundingBoxHeight = Math.Min(boxHeight, originalHeight - y1) / originalHeight,
+                Confidence = score,
+                Landmarks = landmarks,
+                FaceSize = Math.Max(boxWidth, boxHeight),
+                ModelVersion = _modelVersion
+            });
         }
 
         return ApplyNms(faces, _modelProvider.GetNmsIouThreshold());
@@ -360,109 +551,6 @@ public sealed class OnnxFaceDetector : IOnnxFaceDetector
         var union = areaA + areaB - intersection;
 
         return union > 0 ? intersection / union : 0;
-    }
-
-    private Task<IReadOnlyList<DetectedFace>> DetectWithFallbackAsync(byte[] imageData, CancellationToken cancellationToken)
-    {
-        return Task.Run<IReadOnlyList<DetectedFace>>(() => DetectWithFallback(imageData), cancellationToken);
-    }
-
-    private List<DetectedFace> DetectWithFallback(byte[] imageData)
-    {
-        try
-        {
-            using var stream = new MemoryStream(imageData);
-            using var bitmap = new Bitmap(stream);
-
-            var faces = new List<DetectedFace>();
-            var sw = Stopwatch.StartNew();
-
-            using var gray = new Bitmap(bitmap.Width, bitmap.Height, PixelFormat.Format8bppIndexed);
-            using (var graphics = Graphics.FromImage(gray))
-            {
-                graphics.DrawImage(bitmap, 0, 0, bitmap.Width, bitmap.Height);
-            }
-
-            var windowSize = 24;
-            var stepSize = 4;
-            var scaleFactor = 1.2;
-
-            for (var scale = 1.0; scale < 4.0; scale *= scaleFactor)
-            {
-                var scaledWidth = (int)(bitmap.Width / scale);
-                var scaledHeight = (int)(bitmap.Height / scale);
-
-                if (scaledWidth < windowSize || scaledHeight < windowSize)
-                    break;
-
-                for (var y = 0; y < scaledHeight - windowSize; y += stepSize)
-                {
-                    for (var x = 0; x < scaledWidth - windowSize; x += stepSize)
-                    {
-                        var confidence = CalculateWindowScore(gray, x, y, windowSize);
-
-                        if (confidence > 0.3)
-                        {
-                            faces.Add(new DetectedFace
-                            {
-                                BoundingBoxX = (double)x / bitmap.Width,
-                                BoundingBoxY = (double)y / bitmap.Height,
-                                BoundingBoxWidth = (double)windowSize / bitmap.Width,
-                                BoundingBoxHeight = (double)windowSize / bitmap.Height,
-                                Confidence = confidence,
-                                FaceSize = windowSize,
-                                ModelVersion = "fallback-1.0"
-                            });
-                        }
-                    }
-                }
-            }
-
-            faces = ApplyNms(faces, 0.3f);
-
-            sw.Stop();
-            _lastInferenceTimeMs = sw.Elapsed.TotalMilliseconds;
-
-            return faces;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogDebug(ex, "Fallback detection failed");
-            return [];
-        }
-    }
-
-    private static double CalculateWindowScore(Bitmap gray, int x, int y, int windowSize)
-    {
-        double score = 0;
-        int blockSize = 8;
-
-        for (var by = 0; by < windowSize - blockSize; by += blockSize)
-        {
-            for (var bx = 0; bx < windowSize - blockSize; bx += blockSize)
-            {
-                var gradientX = 0.0;
-                var gradientY = 0.0;
-
-                for (var py = by; py < by + blockSize && y + py + 1 < gray.Height; py++)
-                {
-                    for (var px = bx; px < bx + blockSize && x + px + 1 < gray.Width; px++)
-                    {
-                        var pixel = gray.GetPixel(x + px, y + py);
-                        var right = gray.GetPixel(x + px + 1, y + py);
-                        var bottom = gray.GetPixel(x + px, y + py + 1);
-
-                        gradientX += Math.Abs(right.R - pixel.R);
-                        gradientY += Math.Abs(bottom.R - pixel.R);
-                    }
-                }
-
-                var magnitude = Math.Sqrt(gradientX * gradientX + gradientY * gradientY);
-                score += magnitude;
-            }
-        }
-
-        return score / (windowSize * windowSize) * 10;
     }
 
     private InferenceSession GetSession()

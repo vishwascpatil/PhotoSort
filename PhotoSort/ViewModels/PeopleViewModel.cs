@@ -8,6 +8,13 @@ using PhotoSort.Services;
 
 namespace PhotoSort.ViewModels;
 
+public enum PeopleSortMode
+{
+    MostFrequent,
+    Alphabetical,
+    Recent
+}
+
 public partial class PeopleViewModel : ObservableObject, IDisposable
 {
     private readonly IPeopleService _peopleService;
@@ -82,10 +89,22 @@ public partial class PeopleViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private string _newPersonName = string.Empty;
 
+    // NEW: Search, sort, and unnamed faces
+    [ObservableProperty]
+    private string _searchText = string.Empty;
+
+    [ObservableProperty]
+    private PeopleSortMode _sortMode = PeopleSortMode.MostFrequent;
+
+    [ObservableProperty]
+    private bool _hasUnnamedFaces;
+
     public ObservableCollection<PersonInfo> People { get; } = [];
+    public ObservableCollection<PersonInfo> FilteredPeople { get; } = [];
     public ObservableCollection<FaceInfo> SelectedPersonFaces { get; } = [];
     public ObservableCollection<int> SelectedPersonIds { get; } = [];
     public ObservableCollection<int> SplitFaceIds { get; } = [];
+    public ObservableCollection<FaceInfo> UnnamedFaces { get; } = [];
 
     public PeopleViewModel(
         IPeopleService peopleService,
@@ -100,6 +119,28 @@ public partial class PeopleViewModel : ObservableObject, IDisposable
         _peopleService.PeopleChanged += OnPeopleChanged;
 
         _ = LoadPeopleAsync();
+    }
+
+    partial void OnSearchTextChanged(string value) => ApplyFilterAndSort();
+    partial void OnSortModeChanged(PeopleSortMode value) => ApplyFilterAndSort();
+
+    private void ApplyFilterAndSort()
+    {
+        var query = string.IsNullOrWhiteSpace(SearchText)
+            ? People
+            : new ObservableCollection<PersonInfo>(
+                People.Where(p => p.Name.Contains(SearchText, StringComparison.OrdinalIgnoreCase)));
+
+        var sorted = SortMode switch
+        {
+            PeopleSortMode.Alphabetical => query.OrderBy(p => p.Name).ToList(),
+            PeopleSortMode.Recent => query.OrderByDescending(p => p.LastSeenDate ?? p.CreatedDate).ToList(),
+            _ => query.OrderByDescending(p => p.FaceCount).ToList()
+        };
+
+        FilteredPeople.Clear();
+        foreach (var p in sorted)
+            FilteredPeople.Add(p);
     }
 
     [RelayCommand]
@@ -172,11 +213,19 @@ public partial class PeopleViewModel : ObservableObject, IDisposable
             }
 
             HasPeople = People.Count > 0;
-
             TotalPeopleCount = People.Count;
             TotalFaceCount = People.Sum(p => p.FaceCount);
             UnprocessedPhotoCount = await _peopleService.GetUnprocessedPhotoCountAsync();
             EmbeddedFaceCount = await _peopleService.GetEmbeddedFaceCountAsync();
+
+            // Load unnamed faces
+            var unnamed = await _peopleService.GetUnnamedFacesAsync();
+            UnnamedFaces.Clear();
+            foreach (var f in unnamed)
+                UnnamedFaces.Add(f);
+            HasUnnamedFaces = UnnamedFaces.Count > 0;
+
+            ApplyFilterAndSort();
 
             StatusMessage = HasPeople
                 ? $"Found {TotalPeopleCount} people with {TotalFaceCount} faces"
@@ -224,6 +273,36 @@ public partial class PeopleViewModel : ObservableObject, IDisposable
         {
             _logger.LogError(ex, "Failed to load faces for person");
             StatusMessage = "Failed to load faces";
+        }
+    }
+
+    [RelayCommand]
+    private async Task NameFaceAsync(FaceInfo? face)
+    {
+        if (face is null)
+            return;
+
+        var name = await Task.Run(() =>
+        {
+            return Microsoft.VisualBasic.Interaction.InputBox(
+                "Who is this?",
+                "Name This Face",
+                "");
+        });
+
+        if (string.IsNullOrWhiteSpace(name))
+            return;
+
+        try
+        {
+            await _peopleService.NameFaceAsync(face.FaceId, name);
+            await LoadPeopleAsync();
+            StatusMessage = $"Named face as {name}";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to name face");
+            StatusMessage = "Failed to name face";
         }
     }
 
@@ -417,6 +496,17 @@ public partial class PeopleViewModel : ObservableObject, IDisposable
         _navigationService.NavigateTo<GalleryViewModel>();
     }
 
+    [RelayCommand]
+    private async Task DismissAllUnnamedAsync()
+    {
+        foreach (var face in UnnamedFaces.ToList())
+        {
+            await _peopleService.IgnoreFaceAsync(face.FaceId);
+        }
+        await LoadPeopleAsync();
+        StatusMessage = "All unnamed faces dismissed";
+    }
+
     partial void OnSelectedPersonIndexChanged(int value)
     {
         if (value >= 0 && value < People.Count)
@@ -463,7 +553,8 @@ public partial class PeopleViewModel : ObservableObject, IDisposable
 
     private void OnPeopleChanged(object? sender, EventArgs e)
     {
-        Application.Current?.Dispatcher.BeginInvoke(() => _ = LoadPeopleAsync());
+        if (!_disposed)
+            Application.Current?.Dispatcher.Invoke(() => _ = LoadPeopleAsync());
     }
 
     public void Dispose()
@@ -475,8 +566,10 @@ public partial class PeopleViewModel : ObservableObject, IDisposable
         _peopleService.ProgressChanged -= OnProgressChanged;
         _peopleService.PeopleChanged -= OnPeopleChanged;
         People.Clear();
+        FilteredPeople.Clear();
         SelectedPersonFaces.Clear();
         SelectedPersonIds.Clear();
         SplitFaceIds.Clear();
+        UnnamedFaces.Clear();
     }
 }

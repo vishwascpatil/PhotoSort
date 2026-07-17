@@ -21,8 +21,8 @@ public sealed class FaceModelProvider : IFaceModelProvider
     private static readonly Dictionary<string, (string Url, long ExpectedMinBytes)> ModelUrls = new()
     {
         ["face_detection.onnx"] = (
-            "https://github.com/opencv/opencv_zoo/raw/main/models/face_detection_yunet/face_detection_yunet_2023mar.onnx",
-            200_000),
+            "https://github.com/yakhyo/adaface-onnx/releases/download/weights/det_10g.onnx",
+            10_000_000),
         ["face_embedding.onnx"] = (
             "https://huggingface.co/onnx-community/arcface-onnx/resolve/main/arcface.onnx?download=true",
             100_000_000),
@@ -77,7 +77,6 @@ public sealed class FaceModelProvider : IFaceModelProvider
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to initialize face model provider");
-            _isInitialized = true;
         }
     }
 
