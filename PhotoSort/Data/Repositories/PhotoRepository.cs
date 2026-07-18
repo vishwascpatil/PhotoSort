@@ -213,7 +213,6 @@ public sealed class PhotoRepository : Repository<Photo>, IPhotoRepository
                 VideoThumbnailSmallPath = p.VideoThumbnailSmallPath,
                 VideoThumbnailMediumPath = p.VideoThumbnailMediumPath,
                 VideoThumbnailLargePath = p.VideoThumbnailLargePath,
-                PreviewClipPath = p.PreviewClipPath,
                 IsFavorite = p.IsFavorite,
                 ModifiedDateUtc = p.ModifiedDateUtc,
                 FolderId = p.FolderId,
@@ -263,7 +262,6 @@ public sealed class PhotoRepository : Repository<Photo>, IPhotoRepository
                 VideoThumbnailSmallPath = p.VideoThumbnailSmallPath,
                 VideoThumbnailMediumPath = p.VideoThumbnailMediumPath,
                 VideoThumbnailLargePath = p.VideoThumbnailLargePath,
-                PreviewClipPath = p.PreviewClipPath,
                 IsFavorite = p.IsFavorite,
                 ModifiedDateUtc = p.ModifiedDateUtc,
                 FolderId = p.FolderId,
@@ -288,5 +286,15 @@ public sealed class PhotoRepository : Repository<Photo>, IPhotoRepository
     {
         await using var context = await ContextFactory.CreateDbContextAsync();
         return await context.Set<Photo>().AsNoTracking().MaxAsync(p => p.Id);
+    }
+
+    public async Task<IReadOnlyList<int>> GetAllIdsAsync()
+    {
+        await using var context = await ContextFactory.CreateDbContextAsync();
+        return await context.Set<Photo>()
+            .AsNoTracking()
+            .OrderBy(p => p.Id)
+            .Select(p => p.Id)
+            .ToListAsync();
     }
 }

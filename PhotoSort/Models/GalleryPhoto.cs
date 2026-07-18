@@ -2,6 +2,17 @@ namespace PhotoSort.Models;
 
 public sealed class GalleryPhoto
 {
+    public static readonly HashSet<string> ImageExtensions =
+    [
+        ".jpg", ".jpeg", ".png", ".heic", ".webp", ".bmp", ".gif", ".tiff", ".tif"
+    ];
+
+    public static readonly HashSet<string> VideoExtensions =
+    [
+        ".mp4", ".mov", ".avi", ".mkv", ".wmv", ".webm", ".m4v", ".mpg", ".mpeg", ".3gp", ".flv", ".ts", ".mts", ".m2ts"
+    ];
+
+
     public int Id { get; init; }
 
     public required string FilePath { get; init; }
@@ -29,8 +40,6 @@ public sealed class GalleryPhoto
     public string? VideoThumbnailMediumPath { get; init; }
 
     public string? VideoThumbnailLargePath { get; init; }
-
-    public string? PreviewClipPath { get; init; }
 
     public bool IsFavorite { get; init; }
 

@@ -5,14 +5,8 @@ namespace PhotoSort.Services;
 public interface IMediaLoaderService : IDisposable
 {
     BitmapImage? GetCached(int photoId);
-
-    Task<BitmapImage?> LoadImageAsync(string filePath, CancellationToken cancellationToken = default);
-
-    void Preload(int photoId, string filePath);
-
-    void PreloadRange(IReadOnlyList<(int Id, string FilePath)> items);
-
-    void EvictOutside(int centerId, int radius = 1);
-
+    Task<BitmapImage?> LoadImageAsync(int photoId, string filePath, CancellationToken cancellationToken = default);
+    void EvictOutside(int centerId, int radius);
     void EvictAll();
+    int CacheCount { get; }
 }

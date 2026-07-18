@@ -1,0 +1,115 @@
+<UserControl x:Class="PhotoSort.Views.Memories.MemoryDetailView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:PhotoSort.ViewModels"
+             d:DataContext="{d:DesignInstance vm:MemoryDetailViewModel}"
+             mc:Ignorable="d">
+    <Grid Background="{DynamicResource WindowBackground}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.Row="0" Padding="16,12"
+                Background="{DynamicResource ViewerToolbarBackground}"
+                BorderBrush="{DynamicResource ViewerToolbarBorder}"
+                BorderThickness="0,0,0,1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Button Grid.Column="0"
+                        Command="{Binding GoBackCommand}"
+                        Style="{StaticResource SecondaryButton}"
+                        Padding="8,4" Margin="0,0,12,0">
+                    <TextBlock Text="&#x276E; Back" FontSize="13" />
+                </Button>
+                <StackPanel Grid.Column="1">
+                    <TextBlock Text="{Binding Title}"
+                               FontSize="16" FontWeight="SemiBold"
+                               Foreground="{DynamicResource TitleTextBrush}" />
+                    <TextBlock Text="{Binding Subtitle}"
+                               FontSize="12"
+                               Foreground="{DynamicResource SubtitleTextBrush}" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Content -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="20">
+            <StackPanel>
+                <!-- Date -->
+                <TextBlock Text="{Binding DateRange}"
+                           FontSize="13"
+                           Foreground="{DynamicResource SubtitleTextBrush}"
+                           Margin="0,0,0,16" />
+
+                <!-- Photo Grid -->
+                <ItemsControl ItemsSource="{Binding PhotoItems}"
+                              VirtualizingPanel.IsVirtualizing="True"
+                              VirtualizingPanel.VirtualizationMode="Recycling">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Width="160" Height="160" Margin="4"
+                                    CornerRadius="8" Cursor="Hand"
+                                    Background="{DynamicResource GalleryPlaceholderBackground}"
+                                    ClipToBounds="True">
+                                <Border.InputBindings>
+                                    <MouseBinding Gesture="LeftClick"
+                                        Command="{Binding DataContext.OpenPhotoCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        CommandParameter="{Binding Id}" />
+                                </Border.InputBindings>
+                                <Image Source="{Binding EffectiveSmallThumbnail, Converter={StaticResource ThumbnailToBitmapConverter}}"
+                                       Stretch="UniformToFill" />
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <!-- Location -->
+                <Border Margin="0,16,0,0"
+                        Padding="16"
+                        CornerRadius="8"
+                        Background="{DynamicResource CardBackground}"
+                        Visibility="{Binding LocationSummary, Converter={StaticResource NullOrEmptyToVisibilityConverter}}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#x1F4CD;" FontSize="16" Margin="0,0,8,0" />
+                        <StackPanel>
+                            <TextBlock Text="Location" FontSize="11"
+                                       Foreground="{DynamicResource SubtitleTextBrush}" />
+                            <TextBlock Text="{Binding LocationSummary}" FontSize="14"
+                                       Foreground="{DynamicResource CardTitleBrush}" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- People -->
+                <Border Margin="0,8,0,0"
+                        Padding="16"
+                        CornerRadius="8"
+                        Background="{DynamicResource CardBackground}"
+                        Visibility="{Binding PeopleSummary, Converter={StaticResource NullOrEmptyToVisibilityConverter}}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#x1F465;" FontSize="16" Margin="0,0,8,0" />
+                        <StackPanel>
+                            <TextBlock Text="People" FontSize="11"
+                                       Foreground="{DynamicResource SubtitleTextBrush}" />
+                            <TextBlock Text="{Binding PeopleSummary}" FontSize="14"
+                                       Foreground="{DynamicResource CardTitleBrush}" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

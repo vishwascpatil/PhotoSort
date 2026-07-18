@@ -11,7 +11,6 @@ namespace PhotoSort.Services;
 public sealed class VideoThumbnailBackgroundWorker : IVideoThumbnailWorker
 {
     private readonly IVideoThumbnailService _thumbnailService;
-    private readonly IVideoPreviewCacheService _previewCacheService;
     private readonly IPhotoRepository _photoRepository;
     private readonly ILogger<VideoThumbnailBackgroundWorker> _logger;
 
@@ -34,18 +33,16 @@ public sealed class VideoThumbnailBackgroundWorker : IVideoThumbnailWorker
     public event EventHandler<VideoThumbnailProgress>? ProgressChanged;
     public event EventHandler<int>? ThumbnailReady;
 
-    private const int WorkerCount = 2;
+    private static readonly int WorkerCount = Math.Max(2, Environment.ProcessorCount - 2);
     private const int CurrentThumbnailVersion = 1;
     private static readonly TimeSpan ProgressInterval = TimeSpan.FromMilliseconds(500);
 
     public VideoThumbnailBackgroundWorker(
         IVideoThumbnailService thumbnailService,
-        IVideoPreviewCacheService previewCacheService,
         IPhotoRepository photoRepository,
         ILogger<VideoThumbnailBackgroundWorker> logger)
     {
         _thumbnailService = thumbnailService;
-        _previewCacheService = previewCacheService;
         _photoRepository = photoRepository;
         _logger = logger;
 
@@ -238,10 +235,7 @@ public sealed class VideoThumbnailBackgroundWorker : IVideoThumbnailWorker
 
             if (existing.VideoThumbnailVersion >= CurrentThumbnailVersion
                 && !string.IsNullOrEmpty(existing.VideoThumbnailSmallPath)
-                && File.Exists(existing.VideoThumbnailSmallPath)
-                && !string.IsNullOrEmpty(existing.PreviewClipPath)
-                && File.Exists(existing.PreviewClipPath)
-                && new FileInfo(existing.PreviewClipPath).Length > 0)
+                && File.Exists(existing.VideoThumbnailSmallPath))
             {
                 Interlocked.Increment(ref _skippedCount);
                 return;
@@ -261,22 +255,6 @@ public sealed class VideoThumbnailBackgroundWorker : IVideoThumbnailWorker
                 existing.VideoThumbnailScore = info.ThumbnailScore;
                 existing.VideoThumbnailVersion = info.Version;
                 existing.VideoThumbnailDate = DateTime.UtcNow;
-
-                if (string.IsNullOrEmpty(existing.PreviewClipPath)
-                    || !File.Exists(existing.PreviewClipPath))
-                {
-                    try
-                    {
-                        var clipPath = await _thumbnailService.GeneratePreviewClipAsync(
-                            item.PhotoId, item.FilePath, cancellationToken);
-                        if (clipPath is not null)
-                            existing.PreviewClipPath = clipPath;
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "Clip generation failed for video {PhotoId}", item.PhotoId);
-                    }
-                }
 
                 if (existing.State < ProcessingState.ThumbnailGenerated)
                     existing.State = ProcessingState.ThumbnailGenerated;

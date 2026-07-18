@@ -1,5 +1,3 @@
-using System.Collections.ObjectModel;
-using System.Diagnostics;
 using System.IO;
 using System.Windows.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -15,14 +13,17 @@ public partial class PhotoViewerViewModel : ObservableObject, IDisposable
 {
     private readonly IMediaLoaderService _mediaLoader;
     private readonly IPhotoRepository _photoRepository;
-    private readonly IGalleryDataService _galleryDataService;
     private readonly INavigationService _navigationService;
     private readonly IThumbnailService _thumbnailService;
     private readonly ILogger<PhotoViewerViewModel> _logger;
 
     private List<GalleryPhoto> _allPhotos = [];
     private int _currentIndex = -1;
+    private CancellationTokenSource? _loadCts;
     private bool _disposed;
+
+    private const int PreloadRadius = 2;
+    private const int LookAheadWindow = 2;
 
     [ObservableProperty]
     private BitmapImage? _currentImage;
@@ -50,6 +51,9 @@ public partial class PhotoViewerViewModel : ObservableObject, IDisposable
 
     [ObservableProperty]
     private string _zoomText = "Fit";
+
+    [ObservableProperty]
+    private string _isHighResLoaded = "False";
 
     [ObservableProperty]
     private string _metadataDateTaken = string.Empty;
@@ -88,14 +92,12 @@ public partial class PhotoViewerViewModel : ObservableObject, IDisposable
     public PhotoViewerViewModel(
         IMediaLoaderService mediaLoader,
         IPhotoRepository photoRepository,
-        IGalleryDataService galleryDataService,
         INavigationService navigationService,
         IThumbnailService thumbnailService,
         ILogger<PhotoViewerViewModel> logger)
     {
         _mediaLoader = mediaLoader;
         _photoRepository = photoRepository;
-        _galleryDataService = galleryDataService;
         _navigationService = navigationService;
         _thumbnailService = thumbnailService;
         _logger = logger;
@@ -115,6 +117,7 @@ public partial class PhotoViewerViewModel : ObservableObject, IDisposable
         if (_currentIndex <= 0 || IsNavigating)
             return;
 
+        CancelPendingLoad();
         _currentIndex--;
         await LoadCurrentAsync();
     }
@@ -125,41 +128,24 @@ public partial class PhotoViewerViewModel : ObservableObject, IDisposable
         if (_currentIndex >= _allPhotos.Count - 1 || IsNavigating)
             return;
 
+        CancelPendingLoad();
         _currentIndex++;
         await LoadCurrentAsync();
     }
 
     [RelayCommand]
-    private async Task GoToFirstAsync()
+    private void Close()
     {
-        if (_currentIndex == 0 || IsNavigating)
-            return;
-
-        _currentIndex = 0;
-        await LoadCurrentAsync();
-    }
-
-    [RelayCommand]
-    private async Task GoToLastAsync()
-    {
-        if (_currentIndex >= _allPhotos.Count - 1 || IsNavigating)
-            return;
-
-        _currentIndex = _allPhotos.Count - 1;
-        await LoadCurrentAsync();
+        CancelPendingLoad();
+        CurrentImage = null;
+        _mediaLoader.EvictAll();
+        _navigationService.NavigateTo<GalleryViewModel>();
     }
 
     [RelayCommand]
     private void ToggleMetadata()
     {
         IsMetadataVisible = !IsMetadataVisible;
-    }
-
-    [RelayCommand]
-    private void Close()
-    {
-        _mediaLoader.EvictAll();
-        _navigationService.NavigateTo<GalleryViewModel>();
     }
 
     [RelayCommand]
@@ -209,6 +195,14 @@ public partial class PhotoViewerViewModel : ObservableObject, IDisposable
             return;
 
         IsNavigating = true;
+        IsHighResLoaded = "False";
+
+        var cts = new CancellationTokenSource();
+        var oldCts = Interlocked.Exchange(ref _loadCts, cts);
+        oldCts?.Cancel();
+        oldCts?.Dispose();
+
+        var ct = cts.Token;
 
         try
         {
@@ -227,27 +221,34 @@ public partial class PhotoViewerViewModel : ObservableObject, IDisposable
                 IsVideo = true;
                 VideoPath = CurrentPhoto.FilePath;
 
-                // Show thumbnail as instant poster frame while video loads
-                var posterPath = CurrentPhoto.ThumbnailMediumPath;
-                if (string.IsNullOrEmpty(posterPath) || !File.Exists(posterPath))
-                {
-                    posterPath = _thumbnailService.GetThumbnailPath(CurrentPhoto.Id, ThumbnailSize.Medium);
-                }
-                CurrentImage = File.Exists(posterPath) ? LoadThumbnailBitmap(posterPath) : null;
+                var posterPath = GetThumbnailPath(CurrentPhoto);
+                CurrentImage = !string.IsNullOrEmpty(posterPath) && File.Exists(posterPath)
+                    ? LoadThumbnailBitmap(posterPath)
+                    : null;
             }
             else if (ImageExtensions.Contains(extension))
             {
                 IsVideo = false;
                 VideoPath = string.Empty;
 
+                // 1. Instant thumbnail from local cache (512px JPEG)
+                var thumbnailPath = GetThumbnailPath(CurrentPhoto);
+                var thumbnailImage = !string.IsNullOrEmpty(thumbnailPath) && File.Exists(thumbnailPath)
+                    ? LoadThumbnailBitmap(thumbnailPath)
+                    : null;
+                CurrentImage = thumbnailImage;
+
+                // 2. Check LRU cache for preloaded full-res
                 var cached = _mediaLoader.GetCached(CurrentPhoto.Id);
                 if (cached is not null)
                 {
                     CurrentImage = cached;
+                    IsHighResLoaded = "True";
                 }
                 else
                 {
-                    CurrentImage = await _mediaLoader.LoadImageAsync(CurrentPhoto.FilePath);
+                    // 3. Background decode full-res (Task.Run + DecodePixelWidth + Freeze)
+                    _ = LoadFullResolutionAsync(CurrentPhoto.Id, CurrentPhoto.FilePath, ct);
                 }
             }
             else
@@ -257,8 +258,10 @@ public partial class PhotoViewerViewModel : ObservableObject, IDisposable
                 VideoPath = string.Empty;
             }
 
-            PreloadAdjacent();
+            // 4. Fill look-ahead window in LRU cache
+            PreloadLookAhead();
         }
+        catch (OperationCanceledException) { }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to load photo at index {Index}", _currentIndex);
@@ -269,30 +272,71 @@ public partial class PhotoViewerViewModel : ObservableObject, IDisposable
         }
     }
 
-    private void PreloadAdjacent()
+    private async Task LoadFullResolutionAsync(int photoId, string filePath, CancellationToken ct)
     {
+        try
+        {
+            var fullImage = await _mediaLoader.LoadImageAsync(photoId, filePath, ct);
+
+            if (ct.IsCancellationRequested)
+                return;
+
+            if (fullImage is not null && _currentIndex >= 0 && _currentIndex < _allPhotos.Count)
+            {
+                var currentId = _allPhotos[_currentIndex].Id;
+                if (currentId == photoId)
+                {
+                    await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+                    {
+                        if (!ct.IsCancellationRequested)
+                        {
+                            CurrentImage = fullImage;
+                            IsHighResLoaded = "True";
+                        }
+                    });
+                }
+            }
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Failed to load full resolution for photo {PhotoId}", photoId);
+        }
+    }
+
+    private void PreloadLookAhead()
+    {
+        var currentId = CurrentPhoto?.Id;
+        if (currentId is null)
+            return;
+
         var toPreload = new List<(int Id, string FilePath)>();
 
-        if (_currentIndex > 0)
+        for (int offset = 1; offset <= LookAheadWindow; offset++)
         {
-            var prev = _allPhotos[_currentIndex - 1];
-            if (_mediaLoader.GetCached(prev.Id) is null)
-                toPreload.Add((prev.Id, prev.FilePath));
+            var prevIdx = _currentIndex - offset;
+            if (prevIdx >= 0)
+            {
+                var prev = _allPhotos[prevIdx];
+                if (_mediaLoader.GetCached(prev.Id) is null && IsImageFile(prev.FilePath))
+                    toPreload.Add((prev.Id, prev.FilePath));
+            }
+
+            var nextIdx = _currentIndex + offset;
+            if (nextIdx < _allPhotos.Count)
+            {
+                var next = _allPhotos[nextIdx];
+                if (_mediaLoader.GetCached(next.Id) is null && IsImageFile(next.FilePath))
+                    toPreload.Add((next.Id, next.FilePath));
+            }
         }
 
-        if (_currentIndex < _allPhotos.Count - 1)
+        foreach (var (id, path) in toPreload)
         {
-            var next = _allPhotos[_currentIndex + 1];
-            if (_mediaLoader.GetCached(next.Id) is null)
-                toPreload.Add((next.Id, next.FilePath));
+            _ = LoadFullResolutionAsync(id, path, CancellationToken.None);
         }
 
-        if (toPreload.Count > 0)
-        {
-            _mediaLoader.PreloadRange(toPreload);
-        }
-
-        _mediaLoader.EvictOutside(CurrentPhoto!.Id, radius: 2);
+        _mediaLoader.EvictOutside(currentId.Value, PreloadRadius);
     }
 
     private void UpdateMetadata()
@@ -331,17 +375,40 @@ public partial class PhotoViewerViewModel : ObservableObject, IDisposable
             MetadataCameraModel = string.IsNullOrWhiteSpace(fullPhoto.CameraModel) ? "—" : fullPhoto.CameraModel;
 
             if (fullPhoto.Latitude.HasValue && fullPhoto.Longitude.HasValue)
-            {
                 MetadataLocation = $"{fullPhoto.Latitude:F6}, {fullPhoto.Longitude:F6}";
-            }
             else
-            {
                 MetadataLocation = "—";
-            }
         }
         catch (Exception ex)
         {
             _logger.LogDebug(ex, "Failed to load full metadata for {FilePath}", CurrentPhoto.FilePath);
+        }
+    }
+
+    private string? GetThumbnailPath(GalleryPhoto photo)
+    {
+        var path = photo.EffectiveMediumThumbnail;
+        if (!string.IsNullOrEmpty(path) && File.Exists(path))
+            return path;
+
+        try
+        {
+            path = _thumbnailService.GetThumbnailPath(photo.Id, ThumbnailSize.Medium);
+            if (File.Exists(path))
+                return path;
+        }
+        catch { }
+
+        return photo.ThumbnailSmallPath;
+    }
+
+    private void CancelPendingLoad()
+    {
+        var cts = Interlocked.Exchange(ref _loadCts, null);
+        if (cts is not null)
+        {
+            cts.Cancel();
+            cts.Dispose();
         }
     }
 
@@ -351,6 +418,7 @@ public partial class PhotoViewerViewModel : ObservableObject, IDisposable
             return;
 
         _disposed = true;
+        CancelPendingLoad();
         CurrentImage = null;
         _mediaLoader.EvictAll();
     }
@@ -362,6 +430,7 @@ public partial class PhotoViewerViewModel : ObservableObject, IDisposable
             var bitmap = new BitmapImage();
             bitmap.BeginInit();
             bitmap.CacheOption = BitmapCacheOption.OnLoad;
+            bitmap.CreateOptions = BitmapCreateOptions.None;
             bitmap.UriSource = new Uri(path, UriKind.Absolute);
             bitmap.EndInit();
             bitmap.Freeze();
@@ -371,5 +440,11 @@ public partial class PhotoViewerViewModel : ObservableObject, IDisposable
         {
             return null;
         }
+    }
+
+    private static bool IsImageFile(string filePath)
+    {
+        var ext = Path.GetExtension(filePath).ToLowerInvariant();
+        return ImageExtensions.Contains(ext);
     }
 }

@@ -35,4 +35,5 @@ public interface IPhotoRepository : IRepository<Photo>
     Task<int> GetGalleryCountAsync(int? folderId = null);
 
     Task<int> GetMaxIdAsync();
+    Task<IReadOnlyList<int>> GetAllIdsAsync();
 }

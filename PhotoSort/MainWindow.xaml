@@ -5,6 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="clr-namespace:PhotoSort.ViewModels"
         xmlns:views="clr-namespace:PhotoSort.Views"
+        xmlns:mem="clr-namespace:PhotoSort.Views.Memories"
         mc:Ignorable="d"
         Title="PhotoSort" Height="600" Width="900"
         WindowStartupLocation="CenterScreen"
@@ -19,6 +20,9 @@
         </DataTemplate>
         <DataTemplate DataType="{x:Type vm:PhotoViewerViewModel}">
             <views:PhotoViewerView />
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:VideoViewerViewModel}">
+            <views:VideoViewerView />
         </DataTemplate>
         <DataTemplate DataType="{x:Type vm:DuplicateDetectionViewModel}">
             <views:DuplicateDetectionView />
@@ -37,6 +41,12 @@
         </DataTemplate>
         <DataTemplate DataType="{x:Type vm:TravelInsightsViewModel}">
             <views:TravelInsightsView />
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:MemoriesViewModel}">
+            <mem:MemoriesView />
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:MemoryDetailViewModel}">
+            <mem:MemoryDetailView />
         </DataTemplate>
     </Window.Resources>
 

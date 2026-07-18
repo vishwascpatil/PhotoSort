@@ -13,8 +13,8 @@ public sealed class GalleryDataService : IGalleryDataService
     private readonly ILogger<GalleryDataService> _logger;
 
     private const int MaxCachePages = 20;
-    private const int DefaultPageSize = int.MaxValue;
-    private const int PrefetchPageSize = int.MaxValue;
+    private const int DefaultPageSize = 200;
+    private const int PrefetchPageSize = 200;
 
     private readonly ConcurrentDictionary<int, IReadOnlyList<GalleryPhoto>> _pageCache = new();
     private readonly SemaphoreSlim _loadLock = new(1, 1);

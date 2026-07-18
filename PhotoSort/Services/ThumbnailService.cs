@@ -1,8 +1,8 @@
-using System.Drawing;
-using System.Drawing.Drawing2D;
-using System.Drawing.Imaging;
 using System.IO;
 using Microsoft.Extensions.Logging;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.Processing;
 
 namespace PhotoSort.Services;
 
@@ -59,7 +59,7 @@ public sealed class ThumbnailService : IThumbnailService
         return fileInfo.LastWriteTimeUtc < sourceModifiedUtc;
     }
 
-    public async Task<Bitmap?> GenerateThumbnailAsync(
+    public async Task<string?> GenerateThumbnailAsync(
         string sourceFilePath,
         int photoId,
         ThumbnailSize size,
@@ -72,46 +72,45 @@ public sealed class ThumbnailService : IThumbnailService
         if (!_imageExtensions.Contains(extension) && !VideoThumbnailExtractor.IsVideoFile(sourceFilePath))
             return null;
 
+        var outputPath = GetThumbnailPath(photoId, size);
+
         try
         {
-            Bitmap? sourceImage;
-
             if (VideoThumbnailExtractor.IsVideoFile(sourceFilePath))
             {
-                var targetSize = (int)size;
-                sourceImage = VideoThumbnailExtractor.ExtractThumbnail(sourceFilePath, targetSize);
-                if (sourceImage is null)
+                var framePath = VideoThumbnailExtractor.ExtractThumbnail(sourceFilePath, (int)size);
+                if (framePath is null)
                     return null;
+
+                try
+                {
+                    using var image = await Image.LoadAsync(framePath, cancellationToken);
+                    ResizeImage(image, (int)size);
+                    var encoder = new JpegEncoder { Quality = 85 };
+                    await image.SaveAsJpegAsync(outputPath, encoder, cancellationToken);
+                }
+                finally
+                {
+                    TryDelete(framePath);
+                }
             }
             else
             {
-                var bytes = await File.ReadAllBytesAsync(sourceFilePath, cancellationToken);
-                cancellationToken.ThrowIfCancellationRequested();
-
-                var sourceStream = new MemoryStream(bytes);
-                sourceImage = Image.FromStream(sourceStream, useEmbeddedColorManagement: false, validateImageData: false) as Bitmap;
-                if (sourceImage is null)
-                    return null;
+                using var image = await Image.LoadAsync(sourceFilePath, cancellationToken);
+                ResizeImage(image, (int)size);
+                var encoder = new JpegEncoder { Quality = 85 };
+                await image.SaveAsJpegAsync(outputPath, encoder, cancellationToken);
             }
 
-            var bitmap = ResizeImage(sourceImage, (int)size, (int)size);
-            sourceImage.Dispose();
-
-            var outputPath = GetThumbnailPath(photoId, size);
-            bitmap.Save(outputPath, ImageFormat.Jpeg);
-
-            var result = new Bitmap(bitmap);
-            bitmap.Dispose();
-
-            return result;
+            return outputPath;
         }
         catch (OperationCanceledException)
         {
             throw;
         }
-        catch (OutOfMemoryException)
+        catch (InvalidImageContentException)
         {
-            _logger.LogWarning("Out of memory generating thumbnail for {FilePath}", sourceFilePath);
+            _logger.LogWarning("Invalid or corrupted image: {FilePath}", sourceFilePath);
             return null;
         }
         catch (Exception ex)
@@ -133,12 +132,7 @@ public sealed class ThumbnailService : IThumbnailService
         if (File.Exists(path) && !IsStale(photoId, size, sourceModifiedUtc))
             return path;
 
-        var bitmap = await GenerateThumbnailAsync(sourceFilePath, photoId, size, cancellationToken);
-        if (bitmap is null)
-            return null;
-
-        bitmap.Dispose();
-        return path;
+        return await GenerateThumbnailAsync(sourceFilePath, photoId, size, cancellationToken);
     }
 
     public void DeleteThumbnail(int photoId, ThumbnailSize size)
@@ -208,28 +202,28 @@ public sealed class ThumbnailService : IThumbnailService
         _disposed = true;
     }
 
-    private static Bitmap ResizeImage(Image source, int maxWidth, int maxHeight)
+    private static void ResizeImage(Image image, int maxDimension)
     {
-        var ratioX = (double)maxWidth / source.Width;
-        var ratioY = (double)maxHeight / source.Height;
+        var ratioX = (double)maxDimension / image.Width;
+        var ratioY = (double)maxDimension / image.Height;
         var ratio = Math.Min(ratioX, ratioY);
 
-        var newWidth = (int)(source.Width * ratio);
-        var newHeight = (int)(source.Height * ratio);
+        var newWidth = (int)(image.Width * ratio);
+        var newHeight = (int)(image.Height * ratio);
 
         if (newWidth <= 0) newWidth = 1;
         if (newHeight <= 0) newHeight = 1;
 
-        var bitmap = new Bitmap(newWidth, newHeight);
+        image.Mutate(x => x.Resize(newWidth, newHeight, KnownResamplers.Lanczos3));
+    }
 
-        using var graphics = Graphics.FromImage(bitmap);
-        graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
-        graphics.SmoothingMode = SmoothingMode.HighQuality;
-        graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
-        graphics.CompositingQuality = CompositingQuality.HighQuality;
-
-        graphics.DrawImage(source, 0, 0, newWidth, newHeight);
-
-        return bitmap;
+    private static void TryDelete(string path)
+    {
+        try
+        {
+            if (File.Exists(path))
+                File.Delete(path);
+        }
+        catch { /* ignore cleanup failures */ }
     }
 }

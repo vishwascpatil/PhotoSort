@@ -8,6 +8,8 @@ using PhotoSort.Data;
 using PhotoSort.Data.Repositories;
 using PhotoSort.Models;
 using PhotoSort.Services;
+using PhotoSort.Services.Extractors;
+using PhotoSort.Services.Memories;
 using PhotoSort.ViewModels;
 
 namespace PhotoSort;
@@ -99,7 +101,6 @@ public partial class App : Application
                 services.AddSingleton<ITravelInsightsService, TravelInsightsService>();
 
                 services.AddSingleton<IVideoThumbnailService, VideoThumbnailService>();
-                services.AddSingleton<IVideoPreviewCacheService, VideoPreviewCacheService>();
                 services.AddSingleton<IVideoThumbnailWorker, VideoThumbnailBackgroundWorker>();
 
                 // ViewModels
@@ -107,12 +108,62 @@ public partial class App : Application
                 services.AddTransient<WelcomeViewModel>();
                 services.AddTransient<GalleryViewModel>();
                 services.AddTransient<PhotoViewerViewModel>();
+                services.AddTransient<VideoViewerViewModel>();
                 services.AddTransient<DuplicateDetectionViewModel>();
                 services.AddTransient<CleanupViewModel>();
                 services.AddTransient<SimilarPhotosViewModel>();
                 services.AddTransient<SyncViewModel>();
                 services.AddTransient<PeopleViewModel>();
                 services.AddTransient<TravelInsightsViewModel>();
+
+                // Memories Engine — Core
+                services.Configure<MemoryConfig>(_ => { });
+                services.AddSingleton<IMemoryRepository, MemoryRepository>();
+                services.AddSingleton<IMemoryScheduleRepository, MemoryScheduleRepository>();
+                services.AddSingleton<IMemoryCache, MemoryCache>();
+                services.AddSingleton<IMemoryEventBus, MemoryEventBus>();
+                services.AddSingleton<IMemoryTitleGenerator, MemoryTitleGenerator>();
+                services.AddSingleton<IMemoryScorer, MemoryScorer>();
+                services.AddSingleton<IMemoryAssembler, MemoryAssembler>();
+                services.AddSingleton<IMemoryRanker, MemoryRanker>();
+                services.AddSingleton<IMemoryWorkerPool, MemoryWorkerPool>();
+                services.AddSingleton<IMemoryScheduler, MemoryScheduler>();
+                services.AddSingleton<IMemoryPipelineOrchestrator, MemoryPipelineOrchestrator>();
+                services.AddSingleton<IMemoriesService, MemoriesService>();
+
+                // Memories Engine — Phase 1 Data Layer
+                services.AddSingleton<IMemoryTypeFamilyRepository, MemoryTypeFamilyRepository>();
+                services.AddSingleton<IMemoryTypeEntityRepository, MemoryTypeEntityRepository>();
+                services.AddSingleton<IMemoryScoreRepository, MemoryScoreRepository>();
+                services.AddSingleton<IMemoryCacheRepository, MemoryCacheRepository>();
+                services.AddSingleton<IMemoryGenerationHistoryRepository, MemoryGenerationHistoryRepository>();
+                services.AddSingleton<IMemoryPreferencesRepository, MemoryPreferencesRepository>();
+                services.AddSingleton<IMemoryFeedbackRepository, MemoryFeedbackRepository>();
+                services.AddSingleton<IMemoryStatisticsRepository, MemoryStatisticsRepository>();
+
+                // Signal extractors
+                services.AddSingleton<ISignalExtractor, TemporalSignalExtractor>();
+                services.AddSingleton<ISignalExtractor, SpatialSignalExtractor>();
+                services.AddSingleton<ISignalExtractor, SocialSignalExtractor>();
+                services.AddSingleton<ISignalExtractor, QualitySignalExtractor>();
+                services.AddSingleton<ISignalExtractor, SemanticSignalExtractor>();
+                services.AddSingleton<ISignalExtractor, CameraSignalExtractor>();
+                services.AddSingleton<ISignalExtractor, WeatherSignalExtractor>();
+                services.AddSingleton<ISignalExtractor, BurstSignalExtractor>();
+                services.AddSingleton<ISignalExtractor, OcrSignalExtractor>();
+                services.AddSingleton<ISignalExtractor, BehaviorSignalExtractor>();
+
+                // Memory detectors
+                services.AddSingleton<IMemoryDetector, TemporalMemoryDetector>();
+                services.AddSingleton<IMemoryDetector, SocialMemoryDetector>();
+                services.AddSingleton<IMemoryDetector, LocationMemoryDetector>();
+                services.AddSingleton<IMemoryDetector, ActivityMemoryDetector>();
+                services.AddSingleton<IMemoryDetector, HolidayMemoryDetector>();
+                services.AddSingleton<IMemoryDetector, CompositeMemoryDetector>();
+
+                // Memories ViewModels
+                services.AddTransient<MemoriesViewModel>();
+                services.AddTransient<MemoryDetailViewModel>();
             })
             .Build();
     }

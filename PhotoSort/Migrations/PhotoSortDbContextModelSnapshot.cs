@@ -15,7 +15,7 @@ namespace PhotoSort.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "9.0.17");
+            modelBuilder.HasAnnotation("ProductVersion", "9.0.18");
 
             modelBuilder.Entity("PhotoSort.Models.Face", b =>
                 {
@@ -132,7 +132,7 @@ namespace PhotoSort.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("TEXT");
 
-                    b.PrimitiveCollection<string>("Embedding")
+                    b.Property<string>("Embedding")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
@@ -189,6 +189,534 @@ namespace PhotoSort.Migrations
                     b.HasIndex("LastScanDate");
 
                     b.ToTable("Folders");
+                });
+
+            modelBuilder.Entity("PhotoSort.Models.Memory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("CoverPhotoId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("CoverThumbnailPath")
+                        .HasMaxLength(2048)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("DateEnd")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("DateStart")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("Dismissed")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("GeneratedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsArchived")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsGenerated")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("LastShownAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("LocationSummary")
+                        .HasMaxLength(512)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("MemoryTypeEntityId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("PeopleSummary")
+                        .HasMaxLength(512)
+                        .HasColumnType("TEXT");
+
+                    b.Property<double>("Score")
+                        .HasColumnType("REAL");
+
+                    b.Property<int>("ShowCount")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("SnoozedUntil")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("StorySummary")
+                        .HasMaxLength(2048)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Subtitle")
+                        .HasMaxLength(1024)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DateEnd");
+
+                    b.HasIndex("DateStart");
+
+                    b.HasIndex("GeneratedAt");
+
+                    b.HasIndex("IsGenerated");
+
+                    b.HasIndex("LastShownAt");
+
+                    b.HasIndex("MemoryTypeEntityId");
+
+                    b.HasIndex("Score");
+
+                    b.HasIndex("IsArchived", "Dismissed");
+
+                    b.ToTable("Memories", (string)null);
+                });
+
+            modelBuilder.Entity("PhotoSort.Models.MemoryCacheEntry", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("ExpiresAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("MemoryTypeKey")
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Metadata")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PhotoIds")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<double>("Score")
+                        .HasColumnType("REAL");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT")
+                        .HasDefaultValue("candidate");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExpiresAt");
+
+                    b.HasIndex("Type");
+
+                    b.ToTable("MemoryCache", (string)null);
+                });
+
+            modelBuilder.Entity("PhotoSort.Models.MemoryFeedback", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Feedback")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("MemoryId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(1024)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("MemoryId");
+
+                    b.ToTable("MemoryFeedback", (string)null);
+                });
+
+            modelBuilder.Entity("PhotoSort.Models.MemoryGenerationHistory", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("CandidatesIn")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("CandidatesOut")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CompletedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("DurationMs")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Error")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("MemoryTypeKey")
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("RunId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Stage")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("StartedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RunId");
+
+                    b.HasIndex("StartedAt");
+
+                    b.HasIndex("RunId", "Stage");
+
+                    b.ToTable("MemoryGenerationHistory", (string)null);
+                });
+
+            modelBuilder.Entity("PhotoSort.Models.MemoryItem", b =>
+                {
+                    b.Property<Guid>("MemoryId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("PhotoId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<double?>("QualityScore")
+                        .HasColumnType("REAL");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT")
+                        .HasDefaultValue("supporting");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("MemoryId", "PhotoId");
+
+                    b.HasIndex("MemoryId");
+
+                    b.HasIndex("PhotoId");
+
+                    b.HasIndex("MemoryId", "SortOrder");
+
+                    b.ToTable("MemoryItems", (string)null);
+                });
+
+            modelBuilder.Entity("PhotoSort.Models.MemoryPhoto", b =>
+                {
+                    b.Property<Guid>("MemoryId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("PhotoId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT")
+                        .HasDefaultValue("Supporting");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("MemoryId", "PhotoId");
+
+                    b.HasIndex("PhotoId");
+
+                    b.HasIndex("MemoryId", "SortOrder");
+
+                    b.ToTable("MemoryPhotos", (string)null);
+                });
+
+            modelBuilder.Entity("PhotoSort.Models.MemoryPreferences", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ExcludedTypes")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IncludeScreenshots")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("MaxDailyMemories")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<double>("MinScore")
+                        .HasColumnType("REAL");
+
+                    b.Property<string>("MusicPreference")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT")
+                        .HasDefaultValue("none");
+
+                    b.Property<string>("PreferredTypes")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("WeekdayMode")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT")
+                        .HasDefaultValue("balanced");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("MemoryPreferences", (string)null);
+                });
+
+            modelBuilder.Entity("PhotoSort.Models.MemorySchedule", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("LastShownAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("MemoryId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Recurrence")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("ScheduleDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ScheduleType")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("MemorySchedules");
+                });
+
+            modelBuilder.Entity("PhotoSort.Models.MemoryScore", b =>
+                {
+                    b.Property<Guid>("MemoryId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("PhotoId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<double?>("Brightness")
+                        .HasColumnType("REAL");
+
+                    b.Property<DateTime>("CalculatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<double?>("Composition")
+                        .HasColumnType("REAL");
+
+                    b.Property<double?>("EyeOpenness")
+                        .HasColumnType("REAL");
+
+                    b.Property<int?>("FaceCount")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<double?>("Importance")
+                        .HasColumnType("REAL");
+
+                    b.Property<double?>("Noise")
+                        .HasColumnType("REAL");
+
+                    b.Property<double?>("QualityScore")
+                        .HasColumnType("REAL");
+
+                    b.Property<double?>("Sharpness")
+                        .HasColumnType("REAL");
+
+                    b.Property<double?>("SmileScore")
+                        .HasColumnType("REAL");
+
+                    b.HasKey("MemoryId", "PhotoId");
+
+                    b.HasIndex("CalculatedAt");
+
+                    b.HasIndex("PhotoId");
+
+                    b.ToTable("MemoryScores", (string)null);
+                });
+
+            modelBuilder.Entity("PhotoSort.Models.MemoryStatistics", b =>
+                {
+                    b.Property<int>("MemoryTypeId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<double>("AvgScore")
+                        .HasColumnType("REAL");
+
+                    b.Property<DateTime?>("LastGeneratedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("TotalGenerated")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("TotalViewed")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("UserDwellSeconds")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("UserFavoriteCount")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("UserViewCount")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("MemoryTypeId");
+
+                    b.HasIndex("UpdatedAt");
+
+                    b.ToTable("MemoryStatistics", (string)null);
+                });
+
+            modelBuilder.Entity("PhotoSort.Models.MemoryTypeEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("DefaultCoverStrategy")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT")
+                        .HasDefaultValue("single");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("FamilyId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Icon")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("MaxPhotoCount")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("MinPhotoCount")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("SeasonalMonths")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("TargetIntervalDays")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Tone")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FamilyId");
+
+                    b.HasIndex("IsActive");
+
+                    b.HasIndex("Key")
+                        .IsUnique();
+
+                    b.HasIndex("SortOrder");
+
+                    b.ToTable("MemoryTypes", (string)null);
+                });
+
+            modelBuilder.Entity("PhotoSort.Models.MemoryTypeFamily", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Icon")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.HasIndex("SortOrder");
+
+                    b.ToTable("MemoryTypeFamilies", (string)null);
                 });
 
             modelBuilder.Entity("PhotoSort.Models.Person", b =>
@@ -359,19 +887,6 @@ namespace PhotoSort.Migrations
                     b.Property<DateTime?>("PerceptualHashDate")
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("PreviewClipPath")
-                        .HasMaxLength(2048)
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("PreviewFrameCount")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("PreviewStripGenerated")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("PreviewStripVersion")
-                        .HasColumnType("INTEGER");
-
                     b.Property<int?>("SimilarPhotoGroupId")
                         .HasColumnType("INTEGER");
 
@@ -455,6 +970,27 @@ namespace PhotoSort.Migrations
                     b.ToTable("Photos");
                 });
 
+            modelBuilder.Entity("PhotoSort.Models.PhotoInteraction", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ActionType")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("PhotoId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("Timestamp")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("PhotoInteractions");
+                });
+
             modelBuilder.Entity("PhotoSort.Models.PhotoPlace", b =>
                 {
                     b.Property<int>("PhotoId")
@@ -468,6 +1004,29 @@ namespace PhotoSort.Migrations
                     b.HasIndex("PlaceId");
 
                     b.ToTable("PhotoPlaces");
+                });
+
+            modelBuilder.Entity("PhotoSort.Models.PhotoSignal", b =>
+                {
+                    b.Property<int>("PhotoId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("ExtractedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Signals")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Version")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(1);
+
+                    b.HasKey("PhotoId");
+
+                    b.ToTable("PhotoSignals", (string)null);
                 });
 
             modelBuilder.Entity("PhotoSort.Models.PhotoTag", b =>
@@ -676,6 +1235,38 @@ namespace PhotoSort.Migrations
                     b.ToTable("TripPlaces");
                 });
 
+            modelBuilder.Entity("PhotoSort.Models.UnknownFaceCluster", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<byte[]>("CentroidEmbedding")
+                        .HasColumnType("BLOB");
+
+                    b.Property<string>("ClusterLabel")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("FirstSeen")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsNamed")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("LastSeen")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("PhotoCount")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("UnknownFaceClusters");
+                });
+
             modelBuilder.Entity("PhotoSort.Models.Face", b =>
                 {
                     b.HasOne("PhotoSort.Models.Photo", "Photo")
@@ -696,6 +1287,82 @@ namespace PhotoSort.Migrations
                         .IsRequired();
 
                     b.Navigation("Face");
+                });
+
+            modelBuilder.Entity("PhotoSort.Models.Memory", b =>
+                {
+                    b.HasOne("PhotoSort.Models.MemoryTypeEntity", "MemoryTypeEntity")
+                        .WithMany("Memories")
+                        .HasForeignKey("MemoryTypeEntityId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("MemoryTypeEntity");
+                });
+
+            modelBuilder.Entity("PhotoSort.Models.MemoryFeedback", b =>
+                {
+                    b.HasOne("PhotoSort.Models.Memory", "Memory")
+                        .WithMany("FeedbackEntries")
+                        .HasForeignKey("MemoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Memory");
+                });
+
+            modelBuilder.Entity("PhotoSort.Models.MemoryItem", b =>
+                {
+                    b.HasOne("PhotoSort.Models.Memory", "Memory")
+                        .WithMany("Items")
+                        .HasForeignKey("MemoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Memory");
+                });
+
+            modelBuilder.Entity("PhotoSort.Models.MemoryPhoto", b =>
+                {
+                    b.HasOne("PhotoSort.Models.Memory", "Memory")
+                        .WithMany("Photos")
+                        .HasForeignKey("MemoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Memory");
+                });
+
+            modelBuilder.Entity("PhotoSort.Models.MemoryScore", b =>
+                {
+                    b.HasOne("PhotoSort.Models.Memory", "Memory")
+                        .WithMany("Scores")
+                        .HasForeignKey("MemoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Memory");
+                });
+
+            modelBuilder.Entity("PhotoSort.Models.MemoryStatistics", b =>
+                {
+                    b.HasOne("PhotoSort.Models.MemoryTypeEntity", "MemoryType")
+                        .WithMany()
+                        .HasForeignKey("MemoryTypeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("MemoryType");
+                });
+
+            modelBuilder.Entity("PhotoSort.Models.MemoryTypeEntity", b =>
+                {
+                    b.HasOne("PhotoSort.Models.MemoryTypeFamily", "Family")
+                        .WithMany("MemoryTypes")
+                        .HasForeignKey("FamilyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Family");
                 });
 
             modelBuilder.Entity("PhotoSort.Models.PersonFace", b =>
@@ -814,6 +1481,27 @@ namespace PhotoSort.Migrations
             modelBuilder.Entity("PhotoSort.Models.Folder", b =>
                 {
                     b.Navigation("Photos");
+                });
+
+            modelBuilder.Entity("PhotoSort.Models.Memory", b =>
+                {
+                    b.Navigation("FeedbackEntries");
+
+                    b.Navigation("Items");
+
+                    b.Navigation("Photos");
+
+                    b.Navigation("Scores");
+                });
+
+            modelBuilder.Entity("PhotoSort.Models.MemoryTypeEntity", b =>
+                {
+                    b.Navigation("Memories");
+                });
+
+            modelBuilder.Entity("PhotoSort.Models.MemoryTypeFamily", b =>
+                {
+                    b.Navigation("MemoryTypes");
                 });
 
             modelBuilder.Entity("PhotoSort.Models.Person", b =>

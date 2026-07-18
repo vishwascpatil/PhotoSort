@@ -58,6 +58,12 @@ public partial class GalleryViewModel : ObservableObject, IDisposable
     private string _thumbnailStatus = string.Empty;
 
     [ObservableProperty]
+    private string _photoThumbnailStatus = string.Empty;
+
+    [ObservableProperty]
+    private string _videoThumbnailStatus = string.Empty;
+
+    [ObservableProperty]
     private bool _isTimelineView;
 
     [ObservableProperty]
@@ -150,7 +156,12 @@ Photos.Clear();
             IsGalleryEmpty = Photos.Count == 0;
             HasMorePages = photos.Count > 0;
 
-            EnqueueThumbnails(photos, ThumbnailPriority.High);
+            var captured = photos;
+            _ = Task.Run(() =>
+            {
+                try { EnqueueThumbnails(captured, ThumbnailPriority.High); }
+                catch (Exception ex) { _logger.LogError(ex, "Thumbnail enqueue failed"); }
+            });
             }
         }
         catch (Exception ex)
@@ -191,7 +202,12 @@ Photos.Clear();
 
             HasMorePages = photos.Count > 0;
 
-            EnqueueThumbnails(photos, ThumbnailPriority.Medium);
+            var captured = photos;
+            _ = Task.Run(() =>
+            {
+                try { EnqueueThumbnails(captured, ThumbnailPriority.Medium); }
+                catch (Exception ex) { _logger.LogError(ex, "Thumbnail enqueue failed"); }
+            });
         }
         catch (Exception ex)
         {
@@ -250,9 +266,20 @@ Photos.Clear();
         if (index < 0)
             return;
 
-        var viewer = App.Services.GetRequiredService<PhotoViewerViewModel>();
-        viewer.Initialize(allPhotos, index);
-        _navigationService.NavigateTo(viewer);
+        var photo = allPhotos[index];
+
+        if (photo.IsVideo)
+        {
+            var videoViewer = App.Services.GetRequiredService<VideoViewerViewModel>();
+            videoViewer.Initialize(photo);
+            _navigationService.NavigateTo(videoViewer);
+        }
+        else
+        {
+            var viewer = App.Services.GetRequiredService<PhotoViewerViewModel>();
+            viewer.Initialize(allPhotos, index);
+            _navigationService.NavigateTo(viewer);
+        }
     }
 
     [RelayCommand]
@@ -577,7 +604,6 @@ Photos.Clear();
                 VideoThumbnailSmallPath = videoSmallPath,
                 VideoThumbnailMediumPath = videoMediumPath,
                 VideoThumbnailLargePath = videoThumbnailService.GetThumbnailPath(photo.Id, VideoThumbnailSize.Large),
-                PreviewClipPath = videoThumbnailService.GetPreviewClipPath(photo.Id),
                 IsFavorite = photo.IsFavorite,
                 ModifiedDateUtc = photo.ModifiedDateUtc,
                 FolderId = photo.FolderId,
@@ -611,7 +637,6 @@ Photos.Clear();
                 VideoThumbnailSmallPath = photo.VideoThumbnailSmallPath,
                 VideoThumbnailMediumPath = photo.VideoThumbnailMediumPath,
                 VideoThumbnailLargePath = photo.VideoThumbnailLargePath,
-                PreviewClipPath = photo.PreviewClipPath,
                 IsFavorite = photo.IsFavorite,
                 ModifiedDateUtc = photo.ModifiedDateUtc,
                 FolderId = photo.FolderId,

@@ -27,17 +27,6 @@
                        VerticalAlignment="Center"
                        Visibility="{Binding EffectiveSmallThumbnail, Converter={StaticResource NullOrEmptyToVisibilityConverter}}" />
 
-                <!-- Auto-play Video (starts collapsed, shown when clip is ready) -->
-                <MediaElement x:Name="VideoPlayer"
-                              Visibility="Collapsed"
-                              LoadedBehavior="Manual"
-                              UnloadedBehavior="Stop"
-                              IsMuted="True"
-                              Stretch="UniformToFill"
-                              MediaOpened="VideoPlayer_MediaOpened"
-                              MediaEnded="VideoPlayer_MediaEnded"
-                              MediaFailed="VideoPlayer_MediaFailed" />
-
                 <!-- Video Badge -->
                 <Border HorizontalAlignment="Left"
                         VerticalAlignment="Top"

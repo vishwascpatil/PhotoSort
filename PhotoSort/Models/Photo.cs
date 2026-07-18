@@ -81,8 +81,4 @@ public sealed class Photo
     public double? VideoThumbnailScore { get; set; }
     public int VideoThumbnailVersion { get; set; }
     public DateTime? VideoThumbnailDate { get; set; }
-    public string? PreviewClipPath { get; set; }
-    public bool PreviewStripGenerated { get; set; }
-    public int PreviewStripVersion { get; set; }
-    public int PreviewFrameCount { get; set; }
 }

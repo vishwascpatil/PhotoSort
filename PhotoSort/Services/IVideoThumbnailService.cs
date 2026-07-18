@@ -11,9 +11,6 @@ public interface IVideoThumbnailService : IDisposable
     Task<VideoThumbnailInformation?> GetOrGenerateAsync(
         int photoId, string filePath, DateTime sourceModifiedUtc,
         CancellationToken cancellationToken = default);
-    string GetPreviewClipPath(int photoId);
-    Task<string?> GeneratePreviewClipAsync(
-        int photoId, string filePath, CancellationToken cancellationToken = default);
     bool ThumbnailsExist(int photoId);
     bool IsStale(int photoId, DateTime sourceModifiedUtc);
     void DeleteThumbnails(int photoId);

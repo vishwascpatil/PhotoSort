@@ -1,6 +1,4 @@
-using System.Collections.Concurrent;
 using System.IO;
-using System.Windows;
 using System.Windows.Media.Imaging;
 using Microsoft.Extensions.Logging;
 
@@ -9,30 +7,32 @@ namespace PhotoSort.Services;
 public sealed class MediaLoaderService : IMediaLoaderService
 {
     private readonly ILogger<MediaLoaderService> _logger;
-    private readonly ConcurrentDictionary<int, BitmapImage> _cache = new();
+    private readonly LruCache<int, BitmapImage> _cache;
     private bool _disposed;
+
+    private const int CacheCapacity = 7;
+    private const int MaxDecodeWidth = 3840;
 
     private static readonly HashSet<string> ImageExtensions =
     [
         ".jpg", ".jpeg", ".png", ".heic", ".webp", ".bmp", ".gif", ".tiff", ".tif"
     ];
 
-    private static readonly HashSet<string> VideoExtensions =
-    [
-        ".mp4", ".mov", ".avi", ".mkv", ".wmv", ".webm", ".m4v"
-    ];
+    public int CacheCount => _cache.Count;
 
     public MediaLoaderService(ILogger<MediaLoaderService> logger)
     {
         _logger = logger;
+        _cache = new LruCache<int, BitmapImage>(CacheCapacity);
     }
 
     public BitmapImage? GetCached(int photoId)
     {
-        return _cache.TryGetValue(photoId, out var image) ? image : null;
+        return _cache.TryGet(photoId, out var image) ? image : null;
     }
 
-    public async Task<BitmapImage?> LoadImageAsync(string filePath, CancellationToken cancellationToken = default)
+    public async Task<BitmapImage?> LoadImageAsync(
+        int photoId, string filePath, CancellationToken cancellationToken = default)
     {
         if (!File.Exists(filePath))
             return null;
@@ -41,23 +41,31 @@ public sealed class MediaLoaderService : IMediaLoaderService
         if (!ImageExtensions.Contains(extension))
             return null;
 
+        if (_cache.TryGet(photoId, out var cached))
+            return cached;
+
         try
         {
             var bytes = await File.ReadAllBytesAsync(filePath, cancellationToken);
 
             cancellationToken.ThrowIfCancellationRequested();
 
-            var bitmap = await Application.Current.Dispatcher.InvokeAsync(() =>
+            var bitmap = await Task.Run(() =>
             {
+                using var stream = new MemoryStream(bytes);
+
                 var bmp = new BitmapImage();
                 bmp.BeginInit();
                 bmp.CacheOption = BitmapCacheOption.OnLoad;
-                bmp.StreamSource = new MemoryStream(bytes);
+                bmp.CreateOptions = BitmapCreateOptions.None;
+                bmp.DecodePixelWidth = MaxDecodeWidth;
+                bmp.StreamSource = stream;
                 bmp.EndInit();
                 bmp.Freeze();
                 return bmp;
-            });
+            }, cancellationToken);
 
+            _cache.Put(photoId, bitmap);
             return bitmap;
         }
         catch (OperationCanceledException)
@@ -71,75 +79,28 @@ public sealed class MediaLoaderService : IMediaLoaderService
         }
     }
 
-    public void Preload(int photoId, string filePath)
+    public void EvictOutside(int centerId, int radius)
     {
-        if (_cache.ContainsKey(photoId))
-            return;
-
-        if (!File.Exists(filePath))
-            return;
-
-        var extension = Path.GetExtension(filePath).ToLowerInvariant();
-        if (!ImageExtensions.Contains(extension))
-            return;
-
-        _ = LoadAndCacheAsync(photoId, filePath);
-    }
-
-    public void PreloadRange(IReadOnlyList<(int Id, string FilePath)> items)
-    {
-        foreach (var (id, filePath) in items)
+        var keys = _cache.GetKeys();
+        foreach (var key in keys)
         {
-            Preload(id, filePath);
-        }
-    }
-
-    public void EvictOutside(int centerId, int radius = 1)
-    {
-        var keysToRemove = _cache.Keys
-            .Where(k => Math.Abs(k - centerId) > radius)
-            .ToList();
-
-        foreach (var key in keysToRemove)
-        {
-            if (_cache.TryRemove(key, out var image))
+            if (Math.Abs(key - centerId) > radius)
             {
-                image.StreamSource?.Dispose();
+                _cache.Remove(key);
             }
         }
     }
 
     public void EvictAll()
     {
-        foreach (var kvp in _cache)
-        {
-            kvp.Value.StreamSource?.Dispose();
-        }
         _cache.Clear();
     }
 
     public void Dispose()
     {
-        if (_disposed)
-            return;
-
+        if (_disposed) return;
         _disposed = true;
-        EvictAll();
-    }
-
-    private async Task LoadAndCacheAsync(int photoId, string filePath)
-    {
-        try
-        {
-            var image = await LoadImageAsync(filePath);
-            if (image is not null)
-            {
-                _cache[photoId] = image;
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogDebug(ex, "Preload failed for photo {PhotoId}", photoId);
-        }
+        _cache.Clear();
+        _cache.Dispose();
     }
 }

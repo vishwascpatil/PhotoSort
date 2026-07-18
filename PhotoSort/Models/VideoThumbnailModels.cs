@@ -33,19 +33,4 @@ public sealed class VideoThumbnailProgress
     public string CurrentFileName { get; init; } = string.Empty;
 }
 
-public sealed class VideoPreviewStrip
-{
-    public int PhotoId { get; init; }
-    public int FrameCount { get; init; }
-    public List<VideoPreviewFrame> Frames { get; init; } = [];
-    public DateTime GeneratedDate { get; set; }
-    public int Version { get; set; } = 1;
-}
 
-public sealed class VideoPreviewFrame
-{
-    public int Index { get; init; }
-    public double Timestamp { get; init; }
-    public string ImagePath { get; init; } = string.Empty;
-    public double Score { get; set; }
-}

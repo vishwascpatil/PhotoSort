@@ -75,20 +75,7 @@ public partial class MainWindow : Window
     {
         _mainViewModel.ClearFolderSelection();
         SelectNav(NavMemories);
-        if (_navigationService.CurrentViewModel is GalleryViewModel gallery)
-        {
-            if (!gallery.IsTimelineView)
-                gallery.ToggleViewModeCommand.Execute(null);
-        }
-        else
-        {
-            _navigationService.NavigateTo<GalleryViewModel>();
-            if (_navigationService.CurrentViewModel is GalleryViewModel newGallery)
-            {
-                if (!newGallery.IsTimelineView)
-                    newGallery.ToggleViewModeCommand.Execute(null);
-            }
-        }
+        _navigationService.NavigateTo<MemoriesViewModel>();
     }
 
     private void OnNavPeople(object sender, MouseButtonEventArgs e)

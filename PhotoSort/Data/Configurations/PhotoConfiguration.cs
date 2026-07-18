@@ -31,9 +31,6 @@ public sealed class PhotoConfiguration : IEntityTypeConfiguration<Photo>
         builder.Property(p => p.ThumbnailMediumPath)
             .HasMaxLength(2048);
 
-        builder.Property(p => p.PreviewClipPath)
-            .HasMaxLength(2048);
-
         builder.Property(p => p.CameraMake)
             .HasMaxLength(128);
 

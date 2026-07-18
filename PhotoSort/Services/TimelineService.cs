@@ -152,7 +152,6 @@ public sealed class TimelineService : ITimelineService
                     VideoThumbnailSmallPath = p.VideoThumbnailSmallPath,
                     VideoThumbnailMediumPath = p.VideoThumbnailMediumPath,
                     VideoThumbnailLargePath = p.VideoThumbnailLargePath,
-                    PreviewClipPath = p.PreviewClipPath,
                     IsFavorite = p.IsFavorite,
                     ModifiedDateUtc = p.ModifiedDateUtc,
                     FolderId = p.FolderId,

@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Drawing;
-using System.Drawing.Imaging;
 using System.IO;
 using System.Runtime.Versioning;
 using FFMpegCore;
@@ -41,7 +40,7 @@ public static class VideoThumbnailExtractor
         }
     }
 
-    public static Bitmap? ExtractFrameAtTime(string filePath, double timestampSeconds)
+    public static string? ExtractFrameAtTime(string filePath, double timestampSeconds)
     {
         if (!File.Exists(filePath))
             return null;
@@ -62,21 +61,17 @@ public static class VideoThumbnailExtractor
                 return null;
             }
 
-            using var stream = new FileStream(tempPath, FileMode.Open, FileAccess.Read);
-            return new Bitmap(stream);
+            return tempPath;
         }
         catch (Exception ex)
         {
+            TryDelete(tempPath);
             Debug.WriteLine($"[VideoThumb] ExtractFrame failed for {Path.GetFileName(filePath)} at {timestampSeconds:F1}s: {ex.Message}");
             return null;
         }
-        finally
-        {
-            TryDelete(tempPath);
-        }
     }
 
-    public static Bitmap? ExtractThumbnail(string filePath, int targetSize)
+    public static string? ExtractThumbnail(string filePath, int targetSize)
     {
         if (!File.Exists(filePath))
             return null;
@@ -93,8 +88,7 @@ public static class VideoThumbnailExtractor
             if (!success || !File.Exists(tempPath))
                 return null;
 
-            using var stream = new FileStream(tempPath, FileMode.Open, FileAccess.Read);
-            return new Bitmap(stream);
+            return tempPath;
         }
         catch (Exception ex)
         {
@@ -103,7 +97,8 @@ public static class VideoThumbnailExtractor
         }
         finally
         {
-            TryDelete(tempPath);
+            if (!File.Exists(tempPath))
+                TryDelete(tempPath);
         }
     }
 
